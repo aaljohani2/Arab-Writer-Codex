@@ -97,7 +97,7 @@ $skill-installer
 Install from:
 
 ```text
-https://github.com/asaszj/Arab-Writer-Codex/tree/main/.agents/skills/arab-writer
+https://github.com/aaljohani2/Arab-Writer-Codex/tree/main/.agents/skills/arab-writer
 ```
 
 Or copy `.agents/skills/arab-writer` to:
