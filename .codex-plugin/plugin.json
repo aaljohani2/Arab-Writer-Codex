@@ -3,11 +3,11 @@
   "version": "1.3.0",
   "description": "Context-aware high-fidelity Arabic writing and editing for Codex.",
   "author": {
-    "name": "asaszj",
-    "url": "https://github.com/asaszj"
+    "name": "aaljohani2",
+    "url": "https://github.com/aaljohani2"
   },
-  "homepage": "https://github.com/asaszj/Arab-Writer-Codex",
-  "repository": "https://github.com/asaszj/Arab-Writer-Codex",
+  "homepage": "https://github.com/aaljohani2/Arab-Writer-Codex",
+  "repository": "https://github.com/aaljohani2/Arab-Writer-Codex",
   "license": "MIT",
   "keywords": [
     "arabic",
