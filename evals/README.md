@@ -49,9 +49,32 @@ python evals/run_ab_codex.py \
   --reasoning medium
 ```
 
-`run_metadata.json` records the commit SHA, whether the worktree was clean, configured model/reasoning, case IDs, sampling mode, Codex CLI version, and isolation evidence.
+`run_metadata.json` records the commit SHA, whether the worktree was clean, configured model/reasoning, case IDs, sampling mode, prompt mode, Codex CLI version, and isolation evidence.
 
 The harness still labels the *observed* runtime model/reasoning as unknown unless separate runtime evidence is captured. A configured model slug is not treated as observed runtime proof.
+
+## Blind proofreading mode
+
+`--blind-proofread` is intended for diagnostic corpora whose case-level tasks reveal the target rule. In this mode the harness does **not** pass `case["task"]`, `family`, `rule`, rationale, provenance, expected output, action, or any other diagnostic metadata to the model.
+
+Both sides receive the same generic instruction plus only the input text. The candidate differs only by the explicit `$arab-writer` invocation:
+
+```text
+دقق النص لغويًا ونحويًا وصرفيًا وإملائيًا وترقيميًا.
+صحح الأخطاء الحقيقية فقط بأقل تعديل ممكن.
+لا تغيّر تركيبًا صحيحًا لمجرد تحسين الأسلوب، ولا تستبدل وجهًا عربيًا جائزًا بوجه آخر.
+إذا كان النص صحيحًا فأعده كما هو.
+```
+
+The protocol identifier is recorded as `prompt_mode: blind-proofread-v1` in `run_metadata.json`. The exact instruction is versioned in `run_ab_codex.py`, so a fixed Git commit reproduces it.
+
+This mode measures the harder pipeline:
+
+```text
+detect -> diagnose -> judge -> correct -> avoid overediting
+```
+
+rather than merely applying a rule named in the case task.
 
 ## Existing internal suite
 
@@ -90,6 +113,27 @@ ORT, MOR, SYN, AGR, NUM, PUN, AMB
 
 After the smoke run succeeds, repeat without `--stratified-smoke` to run all 64 cases.
 
+## Challenge Set v1
+
+The reviewed source-grounded challenge corpus lives under:
+
+```text
+evals/challenge/challenge_v1_batch*.jsonl
+```
+
+For the formal blind pass, run the full 70 cases from a clean fixed commit with the same pinned model/reasoning used for the corresponding non-blind baseline:
+
+```bash
+python evals/run_ab_codex.py \
+  --evals-glob 'evals/challenge/challenge_v1_batch*.jsonl' \
+  --blind-proofread \
+  --controlled \
+  --model <model-slug> \
+  --reasoning medium
+```
+
+Do not use `--limit` or `--stratified-smoke` for the formal full challenge baseline. Keep the challenge files outside the candidate workspace; the harness passes only each case's input text under the blind instruction.
+
 ### Scoring
 
 ```bash
@@ -121,7 +165,7 @@ It also reports:
 
 Optional harakat are not ignored for strict preservation. Therefore changing `يوميا` to `يوميًا` on a `PRESERVE` case still counts as an over-edit, while the substantive metric records that no lexical/syntactic content changed.
 
-A substantive mismatch is **not automatically evidence of a grammatical error**. It may still require blind human adjudication where more than one correct formulation exists.
+A substantive mismatch is **not automatically evidence of a grammatical error**. It may still require blind human adjudication where more than one correct formulation exists. This is especially important for punctuation cases, where multiple coherent editorial schemes may be acceptable.
 
 ## GitHub Actions
 
@@ -138,7 +182,7 @@ The harness writes:
 - `evals/results/human_review.csv`;
 - `evals/results/run_metadata.json`.
 
-For the linguistic pilot, scoring writes:
-- `evals/results/linguistic_score.json`.
+For the linguistic pilot or challenge corpus, scoring writes:
+- `evals/results/linguistic_score.json` (or another path supplied with `--out`).
 
 Keep human reviewers blind to which column is baseline/candidate when doing formal evaluation.
