@@ -3,8 +3,16 @@ name: codex-ab-benchmark
 on:
   workflow_dispatch:
     inputs:
+      suite:
+        description: "Evaluation suite"
+        required: true
+        default: "internal"
+        type: choice
+        options:
+          - internal
+          - linguistic-pilot
       limit:
-        description: "Number of internal eval cases"
+        description: "Number of eval cases (blank = all)"
         required: false
         default: "20"
       model:
@@ -40,13 +48,24 @@ jobs:
         run: python evals/benchmark_matrix.py evals/benchmark_matrix.json
       - name: Run A/B
         run: |
-          ARGS=(--limit "${{ inputs.limit }}")
+          ARGS=()
+          if [ -n "${{ inputs.limit }}" ]; then ARGS+=(--limit "${{ inputs.limit }}"); fi
           if [ -n "${{ inputs.model }}" ]; then ARGS+=(--model "${{ inputs.model }}"); fi
           if [ -n "${{ inputs.reasoning }}" ]; then ARGS+=(--reasoning "${{ inputs.reasoning }}"); fi
+          if [ "${{ inputs.suite }}" = "linguistic-pilot" ]; then
+            ARGS+=(--evals-glob 'evals/linguistic_core_pilot_*.jsonl')
+          fi
           python evals/run_ab_codex.py "${ARGS[@]}"
+      - name: Score linguistic pilot
+        if: ${{ inputs.suite == 'linguistic-pilot' }}
+        run: |
+          python evals/score_linguistic_pilot.py \
+            evals/results/ab_results.jsonl \
+            --out evals/results/linguistic_score.json
+          cat evals/results/linguistic_score.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: arab-writer-ab-results
+          name: arab-writer-ab-${{ inputs.suite }}-results
           path: evals/results/
           if-no-files-found: ignore
