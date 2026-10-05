@@ -1,0 +1,154 @@
+{
+  "schema": "arab-writer-challenge-source-registry-v1",
+  "status": "draft",
+  "retrieved_on": "2026-10-05",
+  "principles": {
+    "linguistic_only": true,
+    "domain_truth_not_scored": true,
+    "sacred_text_policy": "Do not introduce deliberate errors inside Qur'anic verses or Prophetic hadith text. Religious challenge items use authorial commentary/prose or preserve protected quotations.",
+    "modern_copyright_policy": "Modern copyrighted/institutional sources are used for domain/register/structure inspiration; challenge sentences are adapted and not copied verbatim unless a short quotation is explicitly protected.",
+    "source_separation": "Challenge sources are evaluation provenance only and are not injected into the Arab Writer skill knowledge layer."
+  },
+  "sources": [
+    {
+      "id": "CL-IBNKHALDUN-MUQ",
+      "era": "classical",
+      "domain": "history-sociology",
+      "author": "عبد الرحمن بن خلدون",
+      "work": "المقدمة",
+      "url": "https://ar.wikisource.org/wiki/مقدمة_ابن_خلدون/القسم_الأول_من_المقدمة",
+      "rights": "public-domain",
+      "usage": "structure_and_register"
+    },
+    {
+      "id": "CL-JAHIZ-BAYAN",
+      "era": "classical",
+      "domain": "literature-rhetoric",
+      "author": "الجاحظ",
+      "work": "البيان والتبيين",
+      "url": "https://downloads.hindawi.org/books/71716470.pdf",
+      "rights": "public-domain-text",
+      "usage": "structure_and_register"
+    },
+    {
+      "id": "CL-SHAFII-RISALA",
+      "era": "classical",
+      "domain": "usul-fiqh",
+      "author": "محمد بن إدريس الشافعي",
+      "work": "الرسالة",
+      "url": "https://ar.wikisource.org/wiki/رسالة_الشافعي",
+      "rights": "public-domain",
+      "usage": "structure_and_register"
+    },
+    {
+      "id": "CL-NAWAWI-MUSLIM",
+      "era": "classical",
+      "domain": "hadith-commentary",
+      "author": "يحيى بن شرف النووي",
+      "work": "المنهاج شرح صحيح مسلم",
+      "url": "https://islamport.com/l/srh/2276/2434.htm",
+      "rights": "classical-text",
+      "usage": "structure_and_register"
+    },
+    {
+      "id": "CL-IBNQUDAMA-MUGHNI",
+      "era": "classical",
+      "domain": "fiqh",
+      "author": "ابن قدامة المقدسي",
+      "work": "المغني",
+      "url": "https://islamport.com/l/hnb/3249/1709.htm",
+      "rights": "classical-text",
+      "usage": "structure_and_register"
+    },
+    {
+      "id": "CL-IBNRUSHD-BIDAYAT",
+      "era": "classical",
+      "domain": "comparative-fiqh",
+      "author": "ابن رشد",
+      "work": "بداية المجتهد ونهاية المقتصد",
+      "url": "https://ar.wikisource.org/wiki/بداية_المجتهد_-_كتاب_الطهارة",
+      "rights": "public-domain",
+      "usage": "structure_and_register"
+    },
+    {
+      "id": "MOD-TAHA-MUSTAQBAL",
+      "era": "modern",
+      "domain": "education-thought",
+      "author": "طه حسين",
+      "work": "مستقبل الثقافة في مصر",
+      "url": "https://downloads.hindawi.org/books/91860682.pdf",
+      "rights": "copyrighted-edition",
+      "usage": "domain_and_structure_adapted_no_verbatim"
+    },
+    {
+      "id": "MOD-AQQAD-SAAT",
+      "era": "modern",
+      "domain": "literary-criticism",
+      "author": "عباس محمود العقاد",
+      "work": "ساعات بين الكتب",
+      "url": "https://downloads.hindawi.org/books/18605304.pdf",
+      "rights": "public-domain-or-licensed-edition",
+      "usage": "structure_and_register"
+    },
+    {
+      "id": "MOD-RAFII-WAHY",
+      "era": "modern",
+      "domain": "literature",
+      "author": "مصطفى صادق الرافعي",
+      "work": "وحي القلم",
+      "url": "https://www.hindawi.org/books/61379142/67/",
+      "rights": "public-domain-or-licensed-edition",
+      "usage": "structure_and_register"
+    },
+    {
+      "id": "MOD-AHMADAMIN-ZUHR",
+      "era": "modern",
+      "domain": "intellectual-history",
+      "author": "أحمد أمين",
+      "work": "ظهر الإسلام",
+      "url": "https://downloads.hindawi.org/books/92963020.pdf",
+      "rights": "public-domain-or-licensed-edition",
+      "usage": "structure_and_register"
+    },
+    {
+      "id": "MOD-WHO-UHC2025",
+      "era": "modern",
+      "domain": "health-policy",
+      "author": "منظمة الصحة العالمية",
+      "work": "تتبع مسار تحقيق التغطية الصحية الشاملة: تقرير الرصد العالمي 2025",
+      "url": "https://www.who.int/ar/publications/i/item/B09757",
+      "rights": "institutional-publication",
+      "usage": "domain_and_structure_adapted_no_verbatim"
+    },
+    {
+      "id": "MOD-KAUST-RESEARCH",
+      "era": "modern",
+      "domain": "science-engineering",
+      "author": "جامعة الملك عبدالله للعلوم والتقنية",
+      "work": "البحث والاكتشاف",
+      "url": "https://www.kaust.edu.sa/ar/research",
+      "rights": "institutional-web-publication",
+      "usage": "domain_and_structure_adapted_no_verbatim"
+    },
+    {
+      "id": "MOD-UN-SDG2025",
+      "era": "modern",
+      "domain": "development-policy",
+      "author": "الأمم المتحدة",
+      "work": "التقرير السنوي 2025 - التنمية المستدامة",
+      "url": "https://www.un.org/ar/annualreport/2025/sustainable-development",
+      "rights": "institutional-publication",
+      "usage": "domain_and_structure_adapted_no_verbatim"
+    },
+    {
+      "id": "MOD-VISION2030-2025",
+      "era": "modern",
+      "domain": "public-policy",
+      "author": "رؤية السعودية 2030",
+      "work": "التقرير السنوي لرؤية السعودية 2030 لعام 2025",
+      "url": "https://www.vision2030.gov.sa/media/jehct1z0/الملخص-التنفيذي-للتقرير-السنوي-لرؤية-السعودية-2030-لعام-2025.pdf",
+      "rights": "institutional-publication",
+      "usage": "domain_and_structure_adapted_no_verbatim"
+    }
+  ]
+}
