@@ -8,6 +8,28 @@ Prerequisites:
 - authenticated `codex` CLI on PATH;
 - network/model access available to that Codex installation.
 
+## Skill isolation
+
+The harness now protects the baseline from a user/global `arab-writer` installation.
+
+Before any model call it:
+1. looks for `arab-writer/SKILL.md` in known user roots such as `~/.agents/skills` and `~/.codex/skills` (plus `$CODEX_HOME/skills` when set);
+2. disables those exact paths with a session-level Codex `skills.config` override;
+3. renders `codex debug prompt-input` for a temporary baseline and candidate workspace;
+4. fails closed if the baseline still sees `arab-writer` or the candidate cannot see its repository-local copy.
+
+The rendered prompt is used only for the visibility check and is not written to the evaluation artifacts. Isolation evidence is recorded in `run_metadata.json`.
+
+If Arab Writer is installed from a nonstandard user/plugin path and the baseline preflight reports that it is still visible, pass the exact skill directory or `SKILL.md` explicitly:
+
+```bash
+python evals/run_ab_codex.py \
+  --global-skill-path "/absolute/path/to/arab-writer/SKILL.md" \
+  --limit 5
+```
+
+`--global-skill-path` may be repeated. The emergency option `--skip-skill-isolation-preflight` exists for diagnostics only and should not be used for a controlled A/B result.
+
 ## Existing internal suite
 
 ```bash
@@ -33,6 +55,14 @@ Run all current pilot files without creating a duplicated combined dataset:
 ```bash
 python evals/run_ab_codex.py \
   --evals-glob 'evals/linguistic_core_pilot_*.jsonl'
+```
+
+Start with a five-case smoke run on a computer where Codex is already authenticated:
+
+```bash
+python evals/run_ab_codex.py \
+  --evals-glob 'evals/linguistic_core_pilot_*.jsonl' \
+  --limit 5
 ```
 
 Then score baseline and candidate separately:
