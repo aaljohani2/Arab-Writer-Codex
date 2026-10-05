@@ -7,12 +7,14 @@ Requires an authenticated `codex` CLI. No credential is stored in the repo.
 A single JSONL may be supplied with --evals. v1.4 linguistic pilot files can be
 loaded together with --evals-glob 'evals/linguistic_core_pilot_*.jsonl'.
 
-Skill-isolation protocol:
+Controlled A/B safeguards:
 - discover user/global Arab Writer installations in known Codex skill roots;
 - disable those exact SKILL.md paths with session-level `-c skills.config=...`;
+- inject a one-run sentinel into the temporary candidate skill description;
 - render `codex debug prompt-input` before model calls;
-- fail closed if baseline still sees `arab-writer` or candidate cannot see the
-  repository-local copy.
+- fail closed unless baseline is clean and candidate exposes that exact sentinel;
+- optionally require a clean Git worktree plus pinned model/reasoning;
+- support a stratified smoke sample across linguistic families.
 
 This keeps a globally installed Arab Writer from contaminating the baseline
 without changing the user's persistent Codex configuration.
@@ -23,16 +25,19 @@ import argparse
 import csv
 import json
 import os
+import re
 import shutil
 import subprocess
 import tempfile
 import time
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SKILL = ROOT / ".agents/skills/arab-writer"
 SKILL_NAME = "arab-writer"
+DEFAULT_SMOKE_FAMILIES = ("ORT", "MOR", "SYN", "AGR", "NUM", "PUN", "AMB")
 
 
 def git_commit():
@@ -42,6 +47,15 @@ def git_commit():
         ).strip()
     except Exception:
         return "unknown"
+
+
+def git_status_porcelain():
+    try:
+        return subprocess.check_output(
+            ["git", "status", "--porcelain"], cwd=ROOT, text=True
+        ).strip()
+    except Exception:
+        return None
 
 
 def codex_version():
@@ -103,7 +117,6 @@ def discover_global_skill_paths(extra_paths=None):
 
 
 def _toml_string(value):
-    # TOML basic strings share the escapes we need here with JSON strings.
     return json.dumps(str(value), ensure_ascii=False)
 
 
@@ -131,8 +144,25 @@ def _path_markers(path):
     return {m.lower() for m in markers if m}
 
 
-def inspect_skill_prompt(text, local_skill_path=None, global_skill_paths=None):
-    """Return only visibility booleans/paths; never persist the rendered prompt."""
+def inject_isolation_sentinel(skill_md: Path, sentinel: str):
+    """Append a unique sentinel to the temporary skill description only."""
+    text = skill_md.read_text(encoding="utf-8")
+    pattern = re.compile(r"(?m)^description:\s*(.+)$")
+    match = pattern.search(text)
+    if not match:
+        raise SystemExit("skill-isolation preflight failed: SKILL.md has no description")
+    replacement = f"description: {match.group(1)} Isolation sentinel: {sentinel}."
+    text = text[: match.start()] + replacement + text[match.end() :]
+    skill_md.write_text(text, encoding="utf-8")
+
+
+def inspect_skill_prompt(
+    text,
+    local_skill_path=None,
+    global_skill_paths=None,
+    sentinel=None,
+):
+    """Return visibility facts only; never persist the rendered prompt."""
     low = text.lower()
     global_visible = []
     for p in global_skill_paths or []:
@@ -148,6 +178,7 @@ def inspect_skill_prompt(text, local_skill_path=None, global_skill_paths=None):
     return {
         "skill_named": SKILL_NAME in low,
         "local_path_visible": local_visible,
+        "sentinel_visible": bool(sentinel and sentinel.lower() in low),
         "global_paths_visible": global_visible,
     }
 
@@ -174,7 +205,8 @@ def debug_prompt_input(workdir, disabled_skill_paths, timeout=45):
 
 
 def run_skill_isolation_preflight(disabled_skill_paths, timeout=45):
-    """Verify that baseline is clean and candidate sees only the local skill."""
+    """Verify baseline is clean and candidate exposes the exact temp local skill."""
+    sentinel = f"AW_ISOLATION_{uuid.uuid4().hex}"
     with tempfile.TemporaryDirectory(prefix="aw-preflight-base-") as bd, \
          tempfile.TemporaryDirectory(prefix="aw-preflight-skill-") as sd:
         base = Path(bd)
@@ -182,6 +214,7 @@ def run_skill_isolation_preflight(disabled_skill_paths, timeout=45):
         local_skill = cand / ".agents/skills/arab-writer/SKILL.md"
         local_skill.parent.parent.mkdir(parents=True, exist_ok=True)
         shutil.copytree(SKILL, local_skill.parent)
+        inject_isolation_sentinel(local_skill, sentinel)
 
         br = debug_prompt_input(base, disabled_skill_paths, timeout=timeout)
         if br["returncode"] != 0:
@@ -193,10 +226,11 @@ def run_skill_isolation_preflight(disabled_skill_paths, timeout=45):
             br["stdout"],
             local_skill_path=None,
             global_skill_paths=disabled_skill_paths,
+            sentinel=sentinel,
         )
-        if bv["skill_named"]:
+        if bv["skill_named"] or bv["sentinel_visible"]:
             raise SystemExit(
-                "skill-isolation preflight failed: baseline still sees 'arab-writer'. "
+                "skill-isolation preflight failed: baseline still sees Arab Writer. "
                 "A global/plugin copy may exist outside known roots. Pass its SKILL.md "
                 "with --global-skill-path and retry."
             )
@@ -211,6 +245,7 @@ def run_skill_isolation_preflight(disabled_skill_paths, timeout=45):
             cr["stdout"],
             local_skill_path=local_skill,
             global_skill_paths=disabled_skill_paths,
+            sentinel=sentinel,
         )
         if cv["global_paths_visible"]:
             raise SystemExit(
@@ -219,14 +254,21 @@ def run_skill_isolation_preflight(disabled_skill_paths, timeout=45):
             )
         if not cv["skill_named"]:
             raise SystemExit(
-                "skill-isolation preflight failed: candidate cannot see the local "
-                "repository copy of Arab Writer."
+                "skill-isolation preflight failed: candidate cannot see Arab Writer."
+            )
+        if not cv["sentinel_visible"]:
+            raise SystemExit(
+                "skill-isolation preflight failed: candidate sees an Arab Writer, "
+                "but not the sentinel-tagged temporary local copy."
             )
 
         return {
             "verified": True,
+            "method": "temporary-description-sentinel",
             "baseline_skill_visible": bv["skill_named"],
+            "baseline_sentinel_visible": bv["sentinel_visible"],
             "candidate_skill_visible": cv["skill_named"],
+            "candidate_sentinel_visible": cv["sentinel_visible"],
             "candidate_local_path_visible": cv["local_path_visible"],
             "disabled_global_skill_paths": [str(p) for p in disabled_skill_paths],
             "debug_command_shape": br["command_shape"],
@@ -339,6 +381,42 @@ def load_cases(files: list[Path]):
     return cases
 
 
+def select_stratified_smoke(cases, family_order=DEFAULT_SMOKE_FAMILIES):
+    """Select one deterministic case from each requested family."""
+    first_by_family = {}
+    for case in cases:
+        family = case.get("family")
+        if family in family_order and family not in first_by_family:
+            first_by_family[family] = case
+    missing = [family for family in family_order if family not in first_by_family]
+    if missing:
+        raise SystemExit(
+            "stratified smoke cannot cover families: " + ", ".join(missing)
+        )
+    return [first_by_family[family] for family in family_order]
+
+
+def validate_controlled_run(args, git_status):
+    """Fail closed on conditions that would make a formal A/B irreproducible."""
+    if not args.controlled:
+        return
+    problems = []
+    if not args.model:
+        problems.append("--model is required")
+    if not args.reasoning:
+        problems.append("--reasoning is required")
+    if args.skip_skill_isolation_preflight:
+        problems.append("skill isolation preflight cannot be skipped")
+    if git_status is None:
+        problems.append("git worktree state could not be read")
+    elif git_status:
+        problems.append(
+            "git worktree is dirty; run from a clean checkout/worktree at a fixed commit"
+        )
+    if problems:
+        raise SystemExit("controlled A/B preflight failed: " + "; ".join(problems))
+
+
 def main():
     ap = argparse.ArgumentParser()
     group = ap.add_mutually_exclusive_group()
@@ -348,11 +426,22 @@ def main():
     group.add_argument(
         "--evals-glob", help="repository-relative glob for multiple JSONL eval files"
     )
+    sample = ap.add_mutually_exclusive_group()
+    sample.add_argument("--limit", type=int)
+    sample.add_argument(
+        "--stratified-smoke",
+        action="store_true",
+        help="run one deterministic case from each pilot family",
+    )
     ap.add_argument("--out", default=str(ROOT / "evals/results"))
-    ap.add_argument("--limit", type=int)
     ap.add_argument("--timeout", type=int, default=180)
     ap.add_argument("--model")
     ap.add_argument("--reasoning")
+    ap.add_argument(
+        "--controlled",
+        action="store_true",
+        help="require clean Git state, pinned model/reasoning, and verified skill isolation",
+    )
     ap.add_argument(
         "--global-skill-path",
         action="append",
@@ -365,19 +454,25 @@ def main():
     ap.add_argument(
         "--skip-skill-isolation-preflight",
         action="store_true",
-        help=(
-            "skip debug prompt verification; not recommended for controlled A/B runs"
-        ),
+        help="skip debug prompt verification; never use for controlled A/B runs",
     )
     args = ap.parse_args()
 
     if not shutil.which("codex"):
         raise SystemExit("codex CLI not found on PATH")
 
+    worktree_status = git_status_porcelain()
+    validate_controlled_run(args, worktree_status)
+
     eval_files = load_eval_files(args.evals, args.evals_glob)
     cases = load_cases(eval_files)
-    if args.limit:
+    sampling = "full"
+    if args.stratified_smoke:
+        cases = select_stratified_smoke(cases)
+        sampling = "stratified-smoke"
+    elif args.limit:
         cases = cases[: args.limit]
+        sampling = f"first-{args.limit}"
 
     global_skill_paths = discover_global_skill_paths(args.global_skill_path)
     if args.skip_skill_isolation_preflight:
@@ -395,18 +490,24 @@ def main():
         "timestamp_utc": datetime.now(timezone.utc).isoformat(),
         "skill_version": (ROOT / "VERSION").read_text(encoding="utf-8").strip(),
         "skill_commit": git_commit(),
+        "git_worktree_clean": worktree_status == "",
+        "git_status_available": worktree_status is not None,
+        "controlled_run": args.controlled,
         "codex_cli_version": codex_version(),
         "configured_model": args.model or "un-pinned",
         "configured_reasoning": args.reasoning or "un-pinned",
         "observed_model": "unknown",
         "observed_reasoning": "unknown",
         "runtime_verification": (
-            "NOT VERIFIED unless separate runtime evidence is captured"
+            "configured runtime is pinned only when --model/--reasoning are supplied; "
+            "observed runtime remains unknown unless separate runtime evidence is captured"
         ),
         "eval_sources": [
             str(p.relative_to(ROOT)) if p.is_relative_to(ROOT) else str(p)
             for p in eval_files
         ],
+        "sampling": sampling,
+        "case_ids": [case["id"] for case in cases],
         "cases": len(cases),
         "skill_isolation": isolation,
     }
@@ -484,7 +585,12 @@ def main():
         f"{len(eval_files)} eval file(s)"
     )
     if isolation.get("verified"):
-        print("Skill isolation: VERIFIED (baseline clean; candidate skill visible)")
+        print(
+            "Skill isolation: VERIFIED "
+            "(baseline clean; candidate sentinel-tagged local skill visible)"
+        )
+    if args.stratified_smoke:
+        print("Stratified smoke families: " + ", ".join(DEFAULT_SMOKE_FAMILIES))
     return 0
 
 
