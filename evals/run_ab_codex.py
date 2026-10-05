@@ -14,7 +14,8 @@ Controlled A/B safeguards:
 - render `codex debug prompt-input` before model calls;
 - fail closed unless baseline is clean and candidate exposes that exact sentinel;
 - optionally require a clean Git worktree plus pinned model/reasoning;
-- support a stratified smoke sample across linguistic families.
+- support a stratified smoke sample across linguistic families;
+- support a blind-proofread prompt that hides per-case diagnostic hints.
 
 This keeps a globally installed Arab Writer from contaminating the baseline
 without changing the user's persistent Codex configuration.
@@ -38,6 +39,13 @@ ROOT = Path(__file__).resolve().parents[1]
 SKILL = ROOT / ".agents/skills/arab-writer"
 SKILL_NAME = "arab-writer"
 DEFAULT_SMOKE_FAMILIES = ("ORT", "MOR", "SYN", "AGR", "NUM", "PUN", "AMB")
+BLIND_PROOFREAD_PROTOCOL = "blind-proofread-v1"
+BLIND_PROOFREAD_INSTRUCTION = (
+    "دقق النص لغويًا ونحويًا وصرفيًا وإملائيًا وترقيميًا.\n"
+    "صحح الأخطاء الحقيقية فقط بأقل تعديل ممكن.\n"
+    "لا تغيّر تركيبًا صحيحًا لمجرد تحسين الأسلوب، ولا تستبدل وجهًا عربيًا جائزًا بوجه آخر.\n"
+    "إذا كان النص صحيحًا فأعده كما هو."
+)
 
 
 def git_commit():
@@ -322,11 +330,15 @@ def run_codex(
     }
 
 
-def prompt_for(case, with_skill):
+def prompt_for(case, with_skill, blind_proofread=False):
+    """Build the model-visible prompt without leaking case metadata in blind mode."""
     parts = []
     if with_skill:
         parts.append("$arab-writer")
-    parts.append(case["task"])
+    if blind_proofread:
+        parts.append(BLIND_PROOFREAD_INSTRUCTION)
+    else:
+        parts.append(case["task"])
     if case.get("input"):
         parts.append("\nالنص:\n" + case["input"])
     parts.append(
@@ -438,6 +450,14 @@ def main():
     ap.add_argument("--model")
     ap.add_argument("--reasoning")
     ap.add_argument(
+        "--blind-proofread",
+        action="store_true",
+        help=(
+            "hide per-case task/rule hints and use one generic Arabic proofreading "
+            "instruction for baseline and candidate"
+        ),
+    )
+    ap.add_argument(
         "--controlled",
         action="store_true",
         help="require clean Git state, pinned model/reasoning, and verified skill isolation",
@@ -493,6 +513,7 @@ def main():
         "git_worktree_clean": worktree_status == "",
         "git_status_available": worktree_status is not None,
         "controlled_run": args.controlled,
+        "prompt_mode": BLIND_PROOFREAD_PROTOCOL if args.blind_proofread else "case-task",
         "codex_cli_version": codex_version(),
         "configured_model": args.model or "un-pinned",
         "configured_reasoning": args.reasoning or "un-pinned",
@@ -529,7 +550,7 @@ def main():
                 shutil.copytree(SKILL, cand / ".agents/skills/arab-writer")
                 br = run_codex(
                     base,
-                    prompt_for(case, False),
+                    prompt_for(case, False, args.blind_proofread),
                     args.timeout,
                     args.model,
                     args.reasoning,
@@ -537,7 +558,7 @@ def main():
                 )
                 cr = run_codex(
                     cand,
-                    prompt_for(case, True),
+                    prompt_for(case, True, args.blind_proofread),
                     args.timeout,
                     args.model,
                     args.reasoning,
@@ -589,6 +610,10 @@ def main():
             "Skill isolation: VERIFIED "
             "(baseline clean; candidate sentinel-tagged local skill visible)"
         )
+    print(
+        "Prompt mode: "
+        + (BLIND_PROOFREAD_PROTOCOL if args.blind_proofread else "case-task")
+    )
     if args.stratified_smoke:
         print("Stratified smoke families: " + ", ".join(DEFAULT_SMOKE_FAMILIES))
     return 0
