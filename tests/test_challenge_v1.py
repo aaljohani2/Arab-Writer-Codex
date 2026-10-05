@@ -8,6 +8,7 @@ CHALLENGE = ROOT / "evals" / "challenge"
 BATCH01 = sorted(CHALLENGE.glob("challenge_v1_batch01_*.jsonl"))
 ALL_CASE_FILES = sorted(CHALLENGE.glob("challenge_v1_batch*.jsonl"))
 REGISTRY = CHALLENGE / "source_registry.json"
+REVIEW = ROOT / "docs" / "CHALLENGE_SET_V1_LINGUISTIC_REVIEW.md"
 
 TARGET_FAMILIES = Counter({
     "SYN": 20,
@@ -95,6 +96,7 @@ class ChallengeFullSetTests(unittest.TestCase):
         cls.registry = json.loads(REGISTRY.read_text(encoding="utf-8"))
         cls.source_by_id = {s["id"]: s for s in cls.registry["sources"]}
         cls.rows = load_jsonl(ALL_CASE_FILES)
+        cls.by_id = {row["id"]: row for row in cls.rows}
 
     def test_full_set_file_case_and_id_counts(self):
         self.assertEqual(len(ALL_CASE_FILES), 9)
@@ -154,6 +156,28 @@ class ChallengeFullSetTests(unittest.TestCase):
                 with self.subTest(case=row["id"], token=token):
                     self.assertIn(token, row["source"])
                     self.assertIn(token, row["expected"])
+
+    def test_second_pass_dialectal_agreement_ambiguity_is_removed(self):
+        row = self.by_id["CH-AGR-002"]
+        self.assertNotIn("قالوا العلماء", row["source"])
+        self.assertIn("العلماءُ الراسخون", row["source"])
+        self.assertIn("يقولون", row["expected"])
+        self.assertEqual(row["rule"], "AGR-PREPOSED-HUMAN-PLURAL")
+
+    def test_second_pass_prohibitive_context_is_explicit(self):
+        row = self.by_id["CH-MOR-012"]
+        self.assertIn("التوجيه إلى مسؤول البيانات", row["source"])
+        self.assertIn("لا تتوانى", row["source"])
+        self.assertIn("لا تتوانَ", row["expected"])
+        self.assertIn("directive-context", row["tags"])
+
+    def test_second_pass_review_record_exists(self):
+        self.assertTrue(REVIEW.exists())
+        text = REVIEW.read_text(encoding="utf-8")
+        self.assertIn("70/70", text)
+        self.assertIn("CH-AGR-002", text)
+        self.assertIn("CH-MOR-012", text)
+        self.assertIn("Punctuation adjudication rule", text)
 
 
 if __name__ == "__main__":
