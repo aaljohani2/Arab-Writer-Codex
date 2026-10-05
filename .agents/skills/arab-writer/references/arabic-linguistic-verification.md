@@ -2,14 +2,33 @@
 
 Use this for proofreading and any task where Arabic correctness is a primary requirement. It complements, rather than replaces, `arabic-core.md`.
 
+For syntax/agreement discovery and adjudication, also load `arabic-syntax.md`.
+
 ## Two-pass rule
 
 Do not assume the first correction pass is correct. After producing a candidate, audit it independently against the source.
 
-### Pass A — correction
+### Pass A — discovery + correction
+
+Before deciding that the text is already correct, run a short discovery scan for grammatical triggers and governed relations. In particular, inspect:
+
+- `إن` and sisters;
+- `كان` and sisters;
+- `لا` النافية للجنس;
+- negation/restriction with `إلا`;
+- passive verbs and deputy subjects;
+- human vs non-human plural agreement;
+- relative-pronoun agreement;
+- dual/sound-plural case forms and idafa nun deletion;
+- followers such as adjective/apposition where case agreement is visible;
+- jussive/subjunctive environments whose effects are visible in the written form.
+
 Correct only defects that are sufficiently supported by context. Preserve correct source forms.
 
+**Minimality must not become passivity:** once a deterministic grammatical defect is established, correct the smallest span that repairs it even if the sentence is still understandable.
+
 ### Pass B — independent audit
+
 Review each changed span and then scan the full candidate for:
 - orthography: hamza, alif maqsura/yaa, taa marbuta/haa, duplicated/missing letters;
 - morphology: inflection, dual/plural forms, attached pronouns, derived forms;
@@ -20,11 +39,31 @@ Review each changed span and then scan the full candidate for:
 - pronoun antecedents and ambiguity;
 - punctuation and sentence boundaries.
 
+## Visible morphology rule
+
+Do not invent an error that depends only on an unshown optional case vowel. Give higher confidence to defects that are visible in the written form, such as:
+
+- dual `ان/ين`;
+- sound masculine plural `ون/ين`;
+- five-noun letter forms;
+- deletion/retention of nun in idafa;
+- deletion of a weak letter under jussive/prohibitive government;
+- an explicitly written wrong short vowel or tanwin in a vocalized span.
+
+If the case relationship is invisible and multiple readings remain possible, preserve rather than guess.
+
 ## Minimality
-A proofreading request is not a rewriting request. If a sentence is correct and clear, leave it alone.
+
+A proofreading request is not a rewriting request. If a sentence is correct and clear, leave it alone. If a localized defect is proven, fix that defect without broad stylistic cleanup.
 
 ## Uncertainty
+
 If two readings are plausible and context does not resolve them, do not guess. Preserve the source or flag the ambiguity when the user asked for diagnostic feedback.
 
+Do not collapse recognized classical/heritage variation into a modern house style merely because the modern pattern is more frequent.
+
 ## Benchmark discipline
+
 Internal fluency is not evidence of grammatical mastery. Regression evaluation should include natural, expert-annotated Arabic grammar/error-correction data such as Nahw-Passage and linguistic-competence suites such as AraLingBench.
+
+Evaluation challenge cases are measurement artifacts, not runtime knowledge. Do not copy benchmark sentences, gold answers, IDs, or case-specific rationales into runtime references.
