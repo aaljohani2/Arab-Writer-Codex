@@ -71,6 +71,56 @@
       "usage": "structure_and_register"
     },
     {
+      "id": "CL-GHAZALI-IHYA",
+      "era": "classical",
+      "domain": "islamic-ethics-theology",
+      "author": "أبو حامد الغزالي",
+      "work": "إحياء علوم الدين",
+      "url": "https://ar.wikisource.org/wiki/إحياء_علوم_الدين",
+      "rights": "public-domain",
+      "usage": "structure_and_register"
+    },
+    {
+      "id": "CL-JURJANI-DALAIL",
+      "era": "classical",
+      "domain": "rhetoric-linguistics",
+      "author": "عبد القاهر الجرجاني",
+      "work": "دلائل الإعجاز",
+      "url": "https://ar.wikisource.org/wiki/دلائل_الإعجاز_-_الجزء_الأول",
+      "rights": "public-domain",
+      "usage": "structure_and_register"
+    },
+    {
+      "id": "CL-IBNTAYMIYYA-WASITIYYA",
+      "era": "classical",
+      "domain": "creed-theology",
+      "author": "أحمد بن تيمية",
+      "work": "العقيدة الواسطية",
+      "url": "https://ar.wikisource.org/wiki/العقيدة_الواسطية",
+      "rights": "public-domain",
+      "usage": "structure_and_register"
+    },
+    {
+      "id": "CL-SHATIBI-MUWAF",
+      "era": "classical",
+      "domain": "usul-fiqh-legal-theory",
+      "author": "إبراهيم بن موسى الشاطبي",
+      "work": "الموافقات",
+      "url": "https://ar.wikisource.org/wiki/موافقات_الشاطبي_-_الجزء_الرابع",
+      "rights": "public-domain",
+      "usage": "structure_and_register"
+    },
+    {
+      "id": "CL-IBNSINA-QANUN",
+      "era": "classical",
+      "domain": "medicine-natural-science",
+      "author": "ابن سينا",
+      "work": "القانون في الطب",
+      "url": "https://sites.dlib.nyu.edu/viewer/books/nyu_aco001196/display?lang=ar",
+      "rights": "public-domain-classical-text-digitized-edition",
+      "usage": "structure_and_register"
+    },
+    {
       "id": "MOD-TAHA-MUSTAQBAL",
       "era": "modern",
       "domain": "education-thought",
@@ -147,6 +197,56 @@
       "author": "رؤية السعودية 2030",
       "work": "التقرير السنوي لرؤية السعودية 2030 لعام 2025",
       "url": "https://www.vision2030.gov.sa/media/jehct1z0/الملخص-التنفيذي-للتقرير-السنوي-لرؤية-السعودية-2030-لعام-2025.pdf",
+      "rights": "institutional-publication",
+      "usage": "domain_and_structure_adapted_no_verbatim"
+    },
+    {
+      "id": "MOD-GASTAT-ANNUAL2025",
+      "era": "modern",
+      "domain": "official-statistics-public-administration",
+      "author": "الهيئة العامة للإحصاء",
+      "work": "التقرير السنوي لعام 2025",
+      "url": "https://www.stats.gov.sa/ar/annual-report",
+      "rights": "institutional-publication",
+      "usage": "domain_and_structure_adapted_no_verbatim"
+    },
+    {
+      "id": "MOD-SAMA-ANNUAL61",
+      "era": "modern",
+      "domain": "economics-finance",
+      "author": "البنك المركزي السعودي",
+      "work": "التقرير السنوي الحادي والستون",
+      "url": "https://sama.gov.sa/ar-sa/Publications/EconomicReports/pages/annualreport.aspx",
+      "rights": "institutional-publication",
+      "usage": "domain_and_structure_adapted_no_verbatim"
+    },
+    {
+      "id": "MOD-UNEP-ANNUAL2025",
+      "era": "modern",
+      "domain": "environment-climate-policy",
+      "author": "برنامج الأمم المتحدة للبيئة",
+      "work": "التقرير السنوي 2025",
+      "url": "https://www.unep.org/annualreport/ar/2025",
+      "rights": "institutional-publication",
+      "usage": "domain_and_structure_adapted_no_verbatim"
+    },
+    {
+      "id": "MOD-ITU-AI2025",
+      "era": "modern",
+      "domain": "artificial-intelligence-digital-policy",
+      "author": "الاتحاد الدولي للاتصالات",
+      "work": "القمة العالمية للذكاء الاصطناعي من أجل المصلحة العامة 2025",
+      "url": "https://www.itu.int/ar/mediacentre/Pages/PR-2025-02-06-AI-for-Good-2025-announcement.aspx",
+      "rights": "institutional-publication",
+      "usage": "domain_and_structure_adapted_no_verbatim"
+    },
+    {
+      "id": "MOD-UNESCO-EDU2025",
+      "era": "modern",
+      "domain": "education-data-policy",
+      "author": "اليونسكو",
+      "work": "تعزيز القدرات الإحصائية في المنطقة العربية لرصد وتقييم التقدم نحو الهدف الرابع",
+      "url": "https://www.unesco.org/ar/articles/tzyz-alqdrat-alahsayyt-fy-almntqt-alrbyt-mbadrt-astratyjyt-lrsd-wtqyym-altqdm-nhw-alhdf-alrab-mn",
       "rights": "institutional-publication",
       "usage": "domain_and_structure_adapted_no_verbatim"
     }
