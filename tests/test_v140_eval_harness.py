@@ -72,33 +72,36 @@ class SkillIsolationTests(unittest.TestCase):
         self.assertTrue(v["skill_named"])
 
     def test_candidate_visibility_distinguishes_local_and_global_paths(self):
-        local = Path("/tmp/cand/.agents/skills/arab-writer/SKILL.md")
-        global_path = Path("/home/test/.agents/skills/arab-writer/SKILL.md")
-        sentinel = "AW_ISOLATION_TEST123"
-        text = (
-            "<skills_instructions>\n"
-            f"- arab-writer: Arabic editor {sentinel} {local.as_posix()}\n"
-            "</skills_instructions>"
-        )
-        v = runner.inspect_skill_prompt(
-            text,
-            local_skill_path=local,
-            global_skill_paths=[global_path],
-            sentinel=sentinel,
-        )
-        self.assertTrue(v["skill_named"])
-        self.assertTrue(v["local_path_visible"])
-        self.assertTrue(v["sentinel_visible"])
-        self.assertEqual(v["global_paths_visible"], [])
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            local = root / "candidate/.agents/skills/arab-writer/SKILL.md"
+            global_path = root / "global/.agents/skills/arab-writer/SKILL.md"
+            sentinel = "AW_ISOLATION_TEST123"
+            text = (
+                "<skills_instructions>\n"
+                f"- arab-writer: Arabic editor {sentinel} {local.as_posix()}\n"
+                "</skills_instructions>"
+            )
+            v = runner.inspect_skill_prompt(
+                text,
+                local_skill_path=local,
+                global_skill_paths=[global_path],
+                sentinel=sentinel,
+            )
+            self.assertTrue(v["skill_named"])
+            self.assertTrue(v["local_path_visible"])
+            self.assertTrue(v["sentinel_visible"])
+            self.assertEqual(v["global_paths_visible"], [])
 
     def test_global_path_visibility_is_reported(self):
-        global_path = Path("/home/test/.agents/skills/arab-writer/SKILL.md")
-        text = f"skill path: {global_path.as_posix()}"
-        v = runner.inspect_skill_prompt(
-            text,
-            global_skill_paths=[global_path],
-        )
-        self.assertEqual(v["global_paths_visible"], [str(global_path)])
+        with tempfile.TemporaryDirectory() as td:
+            global_path = Path(td) / ".agents/skills/arab-writer/SKILL.md"
+            text = f"skill path: {global_path.as_posix()}"
+            v = runner.inspect_skill_prompt(
+                text,
+                global_skill_paths=[global_path],
+            )
+            self.assertEqual(v["global_paths_visible"], [str(global_path)])
 
     def test_isolation_sentinel_is_injected_into_description(self):
         with tempfile.TemporaryDirectory() as td:
