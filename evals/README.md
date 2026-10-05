@@ -10,17 +10,18 @@ Prerequisites:
 
 ## Skill isolation
 
-The harness now protects the baseline from a user/global `arab-writer` installation.
+The harness protects the baseline from a user/global `arab-writer` installation.
 
 Before any model call it:
 1. looks for `arab-writer/SKILL.md` in known user roots such as `~/.agents/skills` and `~/.codex/skills` (plus `$CODEX_HOME/skills` when set);
 2. disables those exact paths with a session-level Codex `skills.config` override;
-3. renders `codex debug prompt-input` for a temporary baseline and candidate workspace;
-4. fails closed if the baseline still sees `arab-writer` or the candidate cannot see its repository-local copy.
+3. copies the repository skill into a temporary candidate workspace and injects a one-run sentinel into that temporary copy's description;
+4. renders `codex debug prompt-input` for a temporary baseline and candidate workspace;
+5. fails closed unless the baseline sees neither Arab Writer nor the sentinel and the candidate sees the sentinel-tagged temporary local copy.
 
-The rendered prompt is used only for the visibility check and is not written to the evaluation artifacts. Isolation evidence is recorded in `run_metadata.json`.
+The repository skill itself is never modified by the sentinel. The rendered prompt is used only for verification and is not written to evaluation artifacts. Isolation evidence is recorded in `run_metadata.json`.
 
-If Arab Writer is installed from a nonstandard user/plugin path and the baseline preflight reports that it is still visible, pass the exact skill directory or `SKILL.md` explicitly:
+If Arab Writer is installed from a nonstandard user/plugin path and baseline preflight still sees it, pass the exact skill directory or `SKILL.md` explicitly:
 
 ```bash
 python evals/run_ab_codex.py \
@@ -28,18 +29,34 @@ python evals/run_ab_codex.py \
   --limit 5
 ```
 
-`--global-skill-path` may be repeated. The emergency option `--skip-skill-isolation-preflight` exists for diagnostics only and should not be used for a controlled A/B result.
+`--global-skill-path` may be repeated. `--skip-skill-isolation-preflight` is diagnostic only and is rejected by `--controlled`.
+
+## Reproducible controlled runs
+
+Use `--controlled` for formal before/after comparisons. It fails closed unless:
+- `--model` is supplied;
+- `--reasoning` is supplied;
+- the Git worktree is clean;
+- skill-isolation preflight is enabled.
+
+Example:
+
+```bash
+python evals/run_ab_codex.py \
+  --evals-glob 'evals/linguistic_core_pilot_*.jsonl' \
+  --controlled \
+  --model <model-slug> \
+  --reasoning medium
+```
+
+`run_metadata.json` records the commit SHA, whether the worktree was clean, configured model/reasoning, case IDs, sampling mode, Codex CLI version, and isolation evidence.
+
+The harness still labels the *observed* runtime model/reasoning as unknown unless separate runtime evidence is captured. A configured model slug is not treated as observed runtime proof.
 
 ## Existing internal suite
 
 ```bash
 python evals/run_ab_codex.py --limit 10
-```
-
-For a controlled model comparison:
-
-```bash
-python evals/run_ab_codex.py --model gpt-5.6-sol --reasoning medium
 ```
 
 ## v1.4 Arabic linguistic-core pilot
@@ -50,22 +67,30 @@ The pilot cases are split by family under:
 evals/linguistic_core_pilot_*.jsonl
 ```
 
-Run all current pilot files without creating a duplicated combined dataset:
+### Stratified smoke test
 
-```bash
-python evals/run_ab_codex.py \
-  --evals-glob 'evals/linguistic_core_pilot_*.jsonl'
-```
+Do not use `--limit 5` as the main smoke test because sorted files can make that sample come from one family only.
 
-Start with a five-case smoke run on a computer where Codex is already authenticated:
+Use:
 
 ```bash
 python evals/run_ab_codex.py \
   --evals-glob 'evals/linguistic_core_pilot_*.jsonl' \
-  --limit 5
+  --stratified-smoke \
+  --controlled \
+  --model <model-slug> \
+  --reasoning medium
 ```
 
-Then score baseline and candidate separately:
+This deterministically selects one case from each current pilot family:
+
+```text
+ORT, MOR, SYN, AGR, NUM, PUN, AMB
+```
+
+After the smoke run succeeds, repeat without `--stratified-smoke` to run all 64 cases.
+
+### Scoring
 
 ```bash
 python evals/score_linguistic_pilot.py \
@@ -73,24 +98,38 @@ python evals/score_linguistic_pilot.py \
   --out evals/results/linguistic_score.json
 ```
 
-The linguistic scorer reports:
-- exact normalized gold match;
-- correction accuracy on `CORRECT` cases;
-- correct-source preservation on no-change / preserve cases;
-- false-change rate;
-- protected-literal retention;
-- breakdown by linguistic family;
-- candidate-minus-baseline deltas.
+The v2 linguistic scorer deliberately separates strict minimality from substantive linguistic correctness.
 
-An exact mismatch is **not automatically evidence of a grammatical error**. It is an evaluation mismatch that may require blind human review, especially for ambiguous or stylistic cases.
+Strict metrics:
+- exact normalized gold rate;
+- exact correction accuracy;
+- exact source preservation;
+- false-change rate.
+
+Substantive metrics:
+- substantive gold rate;
+- correction accuracy after ignoring optional Arabic harakat only;
+- substantive source preservation;
+- substantive false-change rate.
+
+It also reports:
+- optional-diacritic-only changes;
+- protected-literal retention;
+- family breakdown;
+- candidate-minus-baseline deltas;
+- mismatch classification.
+
+Optional harakat are not ignored for strict preservation. Therefore changing `يوميا` to `يوميًا` on a `PRESERVE` case still counts as an over-edit, while the substantive metric records that no lexical/syntactic content changed.
+
+A substantive mismatch is **not automatically evidence of a grammatical error**. It may still require blind human adjudication where more than one correct formulation exists.
 
 ## GitHub Actions
 
-The manual `codex-ab-benchmark` workflow supports two suites:
+The manual `codex-ab-benchmark` workflow supports:
 - `internal`;
 - `linguistic-pilot`.
 
-The workflow requires the repository `OPENAI_API_KEY` secret and therefore is intentionally manual rather than a push-triggered model benchmark.
+The workflow requires the repository `OPENAI_API_KEY` secret and is intentionally manual rather than a push-triggered paid model benchmark.
 
 ## Outputs
 
@@ -99,7 +138,7 @@ The harness writes:
 - `evals/results/human_review.csv`;
 - `evals/results/run_metadata.json`.
 
-For the linguistic pilot, the workflow also writes:
+For the linguistic pilot, scoring writes:
 - `evals/results/linguistic_score.json`.
 
 Keep human reviewers blind to which column is baseline/candidate when doing formal evaluation.
