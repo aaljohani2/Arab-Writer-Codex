@@ -1,19 +1,19 @@
 # Arabic Linguistic Challenge Set v1 — Design
 
-Status: **DRAFT — batch 01 authored (20/70 cases)**  
+Status: **AUTHORED — 70/70 cases; structural validation added; manual linguistic review pending**  
 Branch: `feature/v1.4-arabic-linguistic-core`
 
 ## Purpose
 
 The existing 64-case pilot is useful for controlled A/B measurement, but GPT-6.1 Sol already reaches a very high substantive score on it. Challenge Set v1 is a harder, source-grounded benchmark intended to expose real gaps in Arabic linguistic judgment before the v1.4 linguistic knowledge layer is added.
 
-This benchmark measures **Arabic linguistic handling**, not subject-matter expertise. A case may be drawn from fiqh, hadith commentary, theology, literature, history, science, health, engineering, or public policy, but the scored issue is grammatical, morphological, orthographic, punctuation-related, agreement-related, numerical, or editorial/ambiguity judgment.
+This benchmark measures **Arabic linguistic handling**, not subject-matter expertise. A case may be drawn from fiqh, hadith commentary, creed, usul al-fiqh, literature, rhetoric, history, classical medicine, science, health, engineering, economics, education, AI, environment, or public policy, but the scored issue is linguistic rather than disciplinary.
 
-## Target composition
+## Completed composition
 
-Target total: **70 cases**
+Total: **70 cases**
 
-| Family | Target |
+| Family | Cases |
 |---|---:|
 | SYN | 20 |
 | MOR | 15 |
@@ -24,56 +24,93 @@ Target total: **70 cases**
 | PUN | 5 |
 | **Total** | **70** |
 
-Era balance target:
+Era balance:
 
-| Era | Target |
+| Era | Cases |
 |---|---:|
 | Classical / heritage | 35 |
 | Modern / contemporary | 35 |
+| **Total** | **70** |
 
-Batch 01 currently contributes 20 cases: 10 classical and 10 modern.
+Every linguistic family contains both classical and modern cases.
+
+Corpus files:
+
+- `evals/challenge/challenge_v1_batch01_a.jsonl`
+- `evals/challenge/challenge_v1_batch01_b.jsonl`
+- `evals/challenge/challenge_v1_batch01_c.jsonl`
+- `evals/challenge/challenge_v1_batch01_d.jsonl`
+- `evals/challenge/challenge_v1_batch02_a.jsonl`
+- `evals/challenge/challenge_v1_batch02_b.jsonl`
+- `evals/challenge/challenge_v1_batch02_c.jsonl`
+- `evals/challenge/challenge_v1_batch02_d.jsonl`
+- `evals/challenge/challenge_v1_batch02_e.jsonl`
 
 ## Source policy
 
-Each case must carry explicit provenance through `provenance.source_id`, resolved in `evals/challenge/source_registry.json`.
+Each case carries explicit provenance through `provenance.source_id`, resolved in `evals/challenge/source_registry.json`.
 
-Allowed source domains include:
+The registry now includes classical and modern sources across several registers. Classical sources include, among others:
 
-- Qur'anic exegesis, fiqh, usul al-fiqh, hadith commentary, creed, sira, and other Islamic scholarship;
-- literary and rhetorical prose;
-- history, sociology, philosophy, logic, and intellectual history;
-- medicine, health policy, mathematics, engineering, computing, environment, and other scientific writing;
-- education, economics, management, law, and public policy.
+- ابن خلدون — `المقدمة`
+- الجاحظ — `البيان والتبيين`
+- الشافعي — `الرسالة`
+- النووي — `المنهاج شرح صحيح مسلم`
+- ابن قدامة — `المغني`
+- ابن رشد — `بداية المجتهد`
+- الغزالي — `إحياء علوم الدين`
+- عبد القاهر الجرجاني — `دلائل الإعجاز`
+- ابن تيمية — `العقيدة الواسطية`
+- الشاطبي — `الموافقات`
+- ابن سينا — `القانون في الطب`
 
-The benchmark does **not** score whether a medical, legal, theological, or scientific claim is substantively correct. Domain material supplies register, terminology, and syntactic pressure only.
+Modern sources include literary/intellectual books and institutional Arabic from WHO, KAUST, the United Nations, Saudi Vision 2030, GASTAT, the Saudi Central Bank, UNEP, ITU, and UNESCO.
+
+The benchmark does **not** score whether a medical, legal, theological, scientific, economic, or policy claim is substantively correct. Domain material supplies register, terminology, sentence length, and syntactic pressure only.
 
 ### Sacred-text safeguard
 
 Do not manufacture an error inside:
+
 - a Qur'anic verse;
 - a Prophetic hadith presented as a direct quotation.
 
-Such text may appear only as a protected literal in fidelity/preservation cases. Correction cases in Islamic domains should target the prose of commentators, jurists, historians, or modern writers around the quotation.
+Such text may appear only as a protected literal in fidelity/preservation cases. Correction cases in Islamic domains target the prose of commentators, jurists, theologians, historians, or adapted authorial prose around the quotation.
 
 ### Modern-source safeguard
 
 For modern copyrighted or institutional publications:
+
 - use domain, register, and structural patterns;
-- adapt the challenge sentence rather than reproducing long verbatim passages;
+- adapt the challenge sentence rather than reproduce long verbatim passages;
 - preserve short quotations only when the quotation itself is the fidelity target.
 
 ## Challenge design
 
-Cases should emphasize one or more of these axes:
+Cases emphasize one or more of these axes:
 
 1. **Correct but tempting to edit** — unusual but licensed Arabic that must be preserved.
-2. **Single hidden defect** — one grammatical or morphological defect inside otherwise polished prose.
+2. **Single hidden defect** — one grammatical, morphological, orthographic, numerical, agreement, or punctuation defect inside otherwise polished prose.
 3. **Contextual ambiguity** — correction depends on antecedent, scope, register, or construction.
 4. **Long-distance dependency** — agreement, case, or reference is separated from its trigger.
 5. **Minimality** — the correct answer fixes the defect without stylistic rewriting.
 6. **Fidelity** — numbers, technical terms, quotations, and established variants remain protected.
 7. **Classical/modern register separation** — a classical structure is not “modernized” merely because it is unfamiliar.
-8. **Domain pressure** — terminology and sentence length should make the linguistic judgment harder without requiring specialist knowledge.
+8. **Domain pressure** — terminology and sentence length make the linguistic judgment harder without requiring specialist knowledge.
+
+Examples of intentionally difficult phenomena in the completed set include:
+
+- delayed nouns of `إن` and `كان` after fronted prepositional predicates;
+- semantic agreement with `من` and collective nouns;
+- `من` الزائدة after negation;
+- `لا` النافية للجنس with an annexed noun;
+- dual nun deletion in idafa;
+- passive ditransitives and deputy subjects;
+- weak verbs under jussive, imperative, and prohibition;
+- maqsur, manqus, and mamdud noun alternations;
+- compound-number gender/case and digit-form tamyiz;
+- accepted orthographic and modern-usage variants that must not be overcorrected;
+- punctuation-only edits in dense argumentative and institutional prose.
 
 ## Case schema additions
 
@@ -96,11 +133,11 @@ In addition to the existing pilot fields, challenge cases include:
 }
 ```
 
-`source`, `expected`, and `protected` remain the scoring authority for the benchmark. `provenance` documents where the register/structure came from; it is not passed to the model during the A/B task.
+`source`, `expected`, and `protected` remain the scoring authority. `provenance` documents where the register or structural pressure came from; it is not passed to the model during the A/B task.
 
 ## Rule references
 
-Canonical adjudication references may include:
+Canonical adjudication references include:
 
 - `كتاب سيبويه`
 - `مغني اللبيب` — ابن هشام
@@ -110,8 +147,24 @@ Canonical adjudication references may include:
 - `شذا العرف في فن الصرف` — أحمد الحملاوي
 - `الترقيم وعلاماته في اللغة العربية` — أحمد زكي باشا
 - `الإملاء والترقيم في الكتابة العربية` — عبد العليم إبراهيم
+- `قرارات مجمع اللغة العربية بالقاهرة` where an accepted modern orthographic variant is the point of the case
+- `معجم الصواب اللغوي` and `معجم اللغة العربية المعاصرة` for specifically modern usage/derivation controls
 
-Where a matter is genuinely disputed or admits multiple standard forms, the case should be `AMB`/`PRESERVE` or receive explicit adjudication notes rather than forcing one school as universally correct.
+Where a matter genuinely admits multiple standard forms, the case is assigned to `AMB`/`PRESERVE` rather than forcing one editorial preference as a universal error.
+
+## Structural validation
+
+`tests/test_challenge_v1.py` now validates the entire set, including:
+
+- 9 challenge JSONL files;
+- exactly 70 unique case IDs;
+- exact family targets;
+- exact 35/35 classical-modern balance;
+- classical and modern coverage inside every family;
+- required schema and provenance;
+- registry traceability;
+- correct `PRESERVE` and `CORRECT` source/expected relationships;
+- survival of protected literals.
 
 ## Leakage rule
 
@@ -119,16 +172,15 @@ Challenge files live under `evals/challenge/`. They are evaluation artifacts and
 
 The v1.4 knowledge layer must be built from independent linguistic references, not from challenge answers.
 
-## Release gate for the challenge set
+## Remaining gate before controlled baseline
 
-Do not call the set “baseline-ready” until all 70 cases:
+Authorship is complete, but the set should not yet be called final/baseline-ready until it receives a second linguistic adjudication pass focused on:
 
-- meet the target family and era allocation;
-- have valid source IDs and rule-source metadata;
-- pass deterministic schema tests;
-- receive manual linguistic review;
-- contain no unresolved disputed ruling disguised as deterministic gold;
-- preserve sacred quotations and protected literals exactly;
-- remain outside the skill runtime context.
+- whether each gold correction is uniquely defensible;
+- whether any `AMB` case accidentally encodes a school preference as mandatory;
+- whether punctuation cases allow materially equivalent alternatives that the exact scorer would unfairly reject;
+- whether diacritics are carrying a distinction that should instead be represented by letters or syntax;
+- whether provenance anchors accurately describe the source/register used;
+- whether any case is still too easy to contribute to a hard-set benchmark.
 
-Only then run the controlled v1.3 A/B baseline on Challenge Set v1.
+After that review passes, run a controlled v1.3 A/B baseline on all 70 cases with the same pinned model/reasoning and skill-isolation protocol used for the 64-case pilot.
