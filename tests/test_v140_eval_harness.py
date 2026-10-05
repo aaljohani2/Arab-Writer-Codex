@@ -32,6 +32,59 @@ class LinguisticPilotLoaderTests(unittest.TestCase):
         self.assertGreaterEqual(len(runner.load_cases(files)), 25)
 
 
+class SkillIsolationTests(unittest.TestCase):
+    def test_disable_override_is_path_scoped_not_name_scoped(self):
+        p = Path("/tmp/example/.agents/skills/arab-writer/SKILL.md")
+        override = runner.skill_disable_override([p])
+        self.assertIn("skills.config=[", override)
+        self.assertIn("enabled=false", override)
+        self.assertIn("arab-writer", override)
+        self.assertNotIn('name="arab-writer"', override)
+
+    def test_windows_path_is_escaped_for_toml(self):
+        p = Path(r"C:\Users\tester\.agents\skills\arab-writer\SKILL.md")
+        override = runner.skill_disable_override([p])
+        self.assertIn("skills.config=[", override)
+        self.assertIn("arab-writer", override)
+        self.assertIn("enabled=false", override)
+
+    def test_baseline_visibility_detects_skill_name(self):
+        text = (
+            "<skills_instructions>\n"
+            "- arab-writer: Arabic editor "
+            "C:/Users/test/.agents/skills/arab-writer/SKILL.md\n"
+            "</skills_instructions>"
+        )
+        v = runner.inspect_skill_prompt(text)
+        self.assertTrue(v["skill_named"])
+
+    def test_candidate_visibility_distinguishes_local_and_global_paths(self):
+        local = Path("/tmp/cand/.agents/skills/arab-writer/SKILL.md")
+        global_path = Path("/home/test/.agents/skills/arab-writer/SKILL.md")
+        text = (
+            "<skills_instructions>\n"
+            f"- arab-writer: Arabic editor {local.as_posix()}\n"
+            "</skills_instructions>"
+        )
+        v = runner.inspect_skill_prompt(
+            text,
+            local_skill_path=local,
+            global_skill_paths=[global_path],
+        )
+        self.assertTrue(v["skill_named"])
+        self.assertTrue(v["local_path_visible"])
+        self.assertEqual(v["global_paths_visible"], [])
+
+    def test_global_path_visibility_is_reported(self):
+        global_path = Path("/home/test/.agents/skills/arab-writer/SKILL.md")
+        text = f"skill path: {global_path.as_posix()}"
+        v = runner.inspect_skill_prompt(
+            text,
+            global_skill_paths=[global_path],
+        )
+        self.assertEqual(v["global_paths_visible"], [str(global_path)])
+
+
 class LinguisticPilotScorerTests(unittest.TestCase):
     def test_candidate_gain_and_preservation_are_separate(self):
         rows = [
