@@ -45,6 +45,43 @@ class LinguisticPilotLoaderTests(unittest.TestCase):
         self.assertEqual(len({case["id"] for case in smoke}), len(smoke))
 
 
+class PromptConstructionTests(unittest.TestCase):
+    def setUp(self):
+        self.case = {
+            "id": "CH-SYN-SECRET",
+            "family": "SYN",
+            "rule": "SYN-INNA-DELAYED-NOUN-SECRET",
+            "task": "صحح اسم إن المؤخر فقط. SECRET_CASE_TASK",
+            "input": "إن في التقرير مؤشرين مهمين.",
+        }
+
+    def test_default_prompt_keeps_case_specific_task(self):
+        prompt = runner.prompt_for(self.case, False)
+        self.assertIn(self.case["task"], prompt)
+        self.assertIn(self.case["input"], prompt)
+        self.assertNotIn("$arab-writer", prompt)
+
+    def test_blind_prompt_hides_case_task_rule_and_family(self):
+        prompt = runner.prompt_for(self.case, False, blind_proofread=True)
+        self.assertIn(runner.BLIND_PROOFREAD_INSTRUCTION, prompt)
+        self.assertIn(self.case["input"], prompt)
+        self.assertNotIn(self.case["task"], prompt)
+        self.assertNotIn("SECRET_CASE_TASK", prompt)
+        self.assertNotIn(self.case["rule"], prompt)
+        self.assertNotIn(self.case["family"], prompt)
+        self.assertNotIn("$arab-writer", prompt)
+
+    def test_blind_candidate_differs_only_by_skill_invocation(self):
+        baseline = runner.prompt_for(self.case, False, blind_proofread=True)
+        candidate = runner.prompt_for(self.case, True, blind_proofread=True)
+        self.assertTrue(candidate.startswith("$arab-writer\n"))
+        self.assertEqual(candidate.removeprefix("$arab-writer\n"), baseline)
+
+    def test_blind_instruction_requires_preservation_when_text_is_correct(self):
+        self.assertIn("إذا كان النص صحيحًا فأعده كما هو", runner.BLIND_PROOFREAD_INSTRUCTION)
+        self.assertIn("بأقل تعديل ممكن", runner.BLIND_PROOFREAD_INSTRUCTION)
+
+
 class SkillIsolationTests(unittest.TestCase):
     def test_disable_override_is_path_scoped_not_name_scoped(self):
         p = Path("/tmp/example/.agents/skills/arab-writer/SKILL.md")
