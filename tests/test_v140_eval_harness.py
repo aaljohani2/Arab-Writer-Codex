@@ -1,6 +1,8 @@
 import importlib.util
+import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[1]
 EVALS = ROOT / "evals"
@@ -30,6 +32,17 @@ class LinguisticPilotLoaderTests(unittest.TestCase):
         files = runner.load_eval_files(None, None)
         self.assertEqual(files, [ROOT / "tests/evals.jsonl"])
         self.assertGreaterEqual(len(runner.load_cases(files)), 25)
+
+    def test_stratified_smoke_covers_every_pilot_family_once(self):
+        files = runner.load_eval_files(None, "evals/linguistic_core_pilot_*.jsonl")
+        cases = runner.load_cases(files)
+        smoke = runner.select_stratified_smoke(cases)
+        self.assertEqual(len(smoke), len(runner.DEFAULT_SMOKE_FAMILIES))
+        self.assertEqual(
+            [case["family"] for case in smoke],
+            list(runner.DEFAULT_SMOKE_FAMILIES),
+        )
+        self.assertEqual(len({case["id"] for case in smoke}), len(smoke))
 
 
 class SkillIsolationTests(unittest.TestCase):
@@ -61,18 +74,21 @@ class SkillIsolationTests(unittest.TestCase):
     def test_candidate_visibility_distinguishes_local_and_global_paths(self):
         local = Path("/tmp/cand/.agents/skills/arab-writer/SKILL.md")
         global_path = Path("/home/test/.agents/skills/arab-writer/SKILL.md")
+        sentinel = "AW_ISOLATION_TEST123"
         text = (
             "<skills_instructions>\n"
-            f"- arab-writer: Arabic editor {local.as_posix()}\n"
+            f"- arab-writer: Arabic editor {sentinel} {local.as_posix()}\n"
             "</skills_instructions>"
         )
         v = runner.inspect_skill_prompt(
             text,
             local_skill_path=local,
             global_skill_paths=[global_path],
+            sentinel=sentinel,
         )
         self.assertTrue(v["skill_named"])
         self.assertTrue(v["local_path_visible"])
+        self.assertTrue(v["sentinel_visible"])
         self.assertEqual(v["global_paths_visible"], [])
 
     def test_global_path_visibility_is_reported(self):
@@ -83,6 +99,45 @@ class SkillIsolationTests(unittest.TestCase):
             global_skill_paths=[global_path],
         )
         self.assertEqual(v["global_paths_visible"], [str(global_path)])
+
+    def test_isolation_sentinel_is_injected_into_description(self):
+        with tempfile.TemporaryDirectory() as td:
+            skill = Path(td) / "SKILL.md"
+            skill.write_text(
+                "---\nname: arab-writer\ndescription: Arabic editor.\n---\n\n# Skill\n",
+                encoding="utf-8",
+            )
+            sentinel = "AW_ISOLATION_TEST456"
+            runner.inject_isolation_sentinel(skill, sentinel)
+            text = skill.read_text(encoding="utf-8")
+            self.assertIn("description: Arabic editor. Isolation sentinel:", text)
+            self.assertIn(sentinel, text)
+            self.assertTrue(
+                runner.inspect_skill_prompt(text, sentinel=sentinel)["sentinel_visible"]
+            )
+
+    def test_controlled_run_requires_pinned_runtime_and_clean_git(self):
+        args = SimpleNamespace(
+            controlled=True,
+            model=None,
+            reasoning=None,
+            skip_skill_isolation_preflight=False,
+        )
+        with self.assertRaises(SystemExit) as ctx:
+            runner.validate_controlled_run(args, " M deleted-fixture")
+        msg = str(ctx.exception)
+        self.assertIn("--model is required", msg)
+        self.assertIn("--reasoning is required", msg)
+        self.assertIn("git worktree is dirty", msg)
+
+    def test_controlled_run_accepts_clean_pinned_setup(self):
+        args = SimpleNamespace(
+            controlled=True,
+            model="example-model",
+            reasoning="medium",
+            skip_skill_isolation_preflight=False,
+        )
+        runner.validate_controlled_run(args, "")
 
 
 class LinguisticPilotScorerTests(unittest.TestCase):
@@ -112,7 +167,53 @@ class LinguisticPilotScorerTests(unittest.TestCase):
         self.assertEqual(report["candidate"]["summary"]["correction_accuracy"], 1.0)
         self.assertEqual(report["candidate"]["summary"]["correct_source_preservation"], 1.0)
         self.assertEqual(report["candidate"]["summary"]["false_change_rate"], 0.0)
-        self.assertEqual(report["delta_candidate_minus_baseline"]["correction_accuracy_delta"], 1.0)
+        self.assertEqual(
+            report["delta_candidate_minus_baseline"]["correction_accuracy_delta"],
+            1.0,
+        )
+
+    def test_optional_diacritic_does_not_fail_substantive_correction(self):
+        rows = [{
+            "id": "MOR-DIAC",
+            "case": {
+                "family": "MOR", "action": "CORRECT", "case_type": "correction",
+                "source": "لن يكتبون التقارير غدا.",
+                "expected": "لن يكتبوا التقارير غدا.",
+                "protected": [],
+            },
+            "baseline": {"returncode": 0, "output": "لن يكتبوا التقارير غدًا."},
+            "candidate": {"returncode": 0, "output": "لن يكتبوا التقارير غدًا."},
+        }]
+        report = scorer.score(rows)
+        summary = report["candidate"]["summary"]
+        self.assertEqual(summary["correction_accuracy"], 1.0)
+        self.assertEqual(summary["exact_correction_accuracy"], 0.0)
+        self.assertEqual(summary["substantive_gold_rate"], 1.0)
+        self.assertEqual(summary["exact_gold_rate"], 0.0)
+        self.assertEqual(
+            report["candidate"]["mismatches"][0]["difference_class"],
+            "optional_diacritics_only",
+        )
+
+    def test_diacritic_only_preserve_change_counts_as_overedit_but_not_substantive_change(self):
+        rows = [{
+            "id": "MOR-PRESERVE-DIAC",
+            "case": {
+                "family": "MOR", "action": "PRESERVE", "case_type": "no_change",
+                "source": "الموظفون يكتبون التقارير يوميا.",
+                "expected": "الموظفون يكتبون التقارير يوميا.",
+                "protected": [],
+            },
+            "baseline": {"returncode": 0, "output": "الموظفون يكتبون التقارير يوميًا."},
+            "candidate": {"returncode": 0, "output": "الموظفون يكتبون التقارير يوميًا."},
+        }]
+        report = scorer.score(rows)
+        summary = report["candidate"]["summary"]
+        self.assertEqual(summary["correct_source_preservation"], 0.0)
+        self.assertEqual(summary["false_change_rate"], 1.0)
+        self.assertEqual(summary["substantive_source_preservation"], 1.0)
+        self.assertEqual(summary["substantive_false_change_rate"], 0.0)
+        self.assertEqual(summary["diacritic_only_changes"], 1)
 
     def test_protected_literal_failure_is_visible(self):
         rows = [{
@@ -127,11 +228,19 @@ class LinguisticPilotScorerTests(unittest.TestCase):
         }]
         report = scorer.score(rows)
         self.assertEqual(report["candidate"]["summary"]["protected_failures"], 1)
-        self.assertEqual(report["candidate"]["summary"]["protected_literal_retention"], 0.0)
+        self.assertEqual(
+            report["candidate"]["summary"]["protected_literal_retention"],
+            0.0,
+        )
 
-    def test_normalization_handles_whitespace_and_code_fence(self):
+    def test_normalization_handles_whitespace_code_fence_and_optional_harakat(self):
         self.assertEqual(scorer.normalize("  نص   عربي  "), "نص عربي")
         self.assertEqual(scorer.normalize("```\nنص عربي\n```"), "نص عربي")
+        self.assertEqual(
+            scorer.normalize_substantive("غدًا"),
+            scorer.normalize_substantive("غدا"),
+        )
+        self.assertNotEqual(scorer.normalize("غدًا"), scorer.normalize("غدا"))
 
 
 if __name__ == "__main__":
