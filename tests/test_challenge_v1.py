@@ -1,12 +1,23 @@
 import json
 import unittest
-from collections import Counter
+from collections import Counter, defaultdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CHALLENGE = ROOT / "evals" / "challenge"
 BATCH01 = sorted(CHALLENGE.glob("challenge_v1_batch01_*.jsonl"))
+ALL_CASE_FILES = sorted(CHALLENGE.glob("challenge_v1_batch*.jsonl"))
 REGISTRY = CHALLENGE / "source_registry.json"
+
+TARGET_FAMILIES = Counter({
+    "SYN": 20,
+    "MOR": 15,
+    "NUM": 10,
+    "AMB": 10,
+    "AGR": 5,
+    "ORT": 5,
+    "PUN": 5,
+})
 
 REQUIRED_FIELDS = {
     "id", "family", "rule", "status", "confidence", "severity", "case_type",
@@ -38,8 +49,8 @@ class ChallengeSourceRegistryTests(unittest.TestCase):
 
     def test_registry_has_unique_ids_and_two_eras(self):
         self.assertEqual(len(self.by_id), len(self.sources))
-        self.assertIn("classical", {s["era"] for s in self.sources})
-        self.assertIn("modern", {s["era"] for s in self.sources})
+        self.assertGreaterEqual(len(self.sources), 24)
+        self.assertEqual({s["era"] for s in self.sources}, {"classical", "modern"})
 
     def test_source_records_are_traceable(self):
         for src in self.sources:
@@ -49,6 +60,7 @@ class ChallengeSourceRegistryTests(unittest.TestCase):
                 self.assertTrue(src["domain"])
                 self.assertTrue(src["url"].startswith("http"))
                 self.assertTrue(src["usage"])
+                self.assertIn(src["era"], {"classical", "modern"})
 
 
 class ChallengeBatch01Tests(unittest.TestCase):
@@ -75,6 +87,38 @@ class ChallengeBatch01Tests(unittest.TestCase):
             for row in self.rows
         )
         self.assertEqual(eras, Counter({"classical": 10, "modern": 10}))
+
+
+class ChallengeFullSetTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.registry = json.loads(REGISTRY.read_text(encoding="utf-8"))
+        cls.source_by_id = {s["id"]: s for s in cls.registry["sources"]}
+        cls.rows = load_jsonl(ALL_CASE_FILES)
+
+    def test_full_set_file_case_and_id_counts(self):
+        self.assertEqual(len(ALL_CASE_FILES), 9)
+        self.assertEqual(len(self.rows), 70)
+        self.assertEqual(len({row["id"] for row in self.rows}), 70)
+
+    def test_full_set_hits_family_targets(self):
+        self.assertEqual(Counter(row["family"] for row in self.rows), TARGET_FAMILIES)
+
+    def test_full_set_era_balance_is_35_35(self):
+        eras = Counter(
+            self.source_by_id[row["provenance"]["source_id"]]["era"]
+            for row in self.rows
+        )
+        self.assertEqual(eras, Counter({"classical": 35, "modern": 35}))
+
+    def test_each_family_contains_classical_and_modern_cases(self):
+        family_eras = defaultdict(set)
+        for row in self.rows:
+            source_id = row["provenance"]["source_id"]
+            family_eras[row["family"]].add(self.source_by_id[source_id]["era"])
+        for family in TARGET_FAMILIES:
+            with self.subTest(family=family):
+                self.assertEqual(family_eras[family], {"classical", "modern"})
 
     def test_required_schema_and_provenance(self):
         for row in self.rows:
