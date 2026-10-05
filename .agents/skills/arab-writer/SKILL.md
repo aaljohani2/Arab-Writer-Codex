@@ -57,8 +57,11 @@ Always:
 - `references/arabic-core.md`
 - `references/quality-gates.md`
 
-Correctness-heavy:
+Correctness-heavy, especially `proofread`:
 - `references/arabic-linguistic-verification.md`
+- `references/arabic-syntax.md`
+
+For proofreading, perform a short grammatical discovery pass before deciding that the source needs no correction. Minimality means **small edits**, not missed deterministic errors. Use `arabic-syntax.md` to test governed relations and agreement before preserving a suspicious form.
 
 By task:
 - naturalize → `references/naturalness.md`
