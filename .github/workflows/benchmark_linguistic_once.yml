@@ -1,0 +1,49 @@
+name: codex-ab-linguistic-once
+
+on:
+  push:
+    branches:
+      - feature/v1.4-arabic-linguistic-core
+    paths:
+      - .github/workflows/benchmark_linguistic_once.yml
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require benchmark credential
+        if: ${{ env.OPENAI_API_KEY == '' }}
+        run: |
+          echo "OPENAI_API_KEY repository secret is not configured; benchmark not executed."
+          exit 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install Codex CLI
+        run: npm install -g @openai/codex
+      - name: Validate linguistic pilot files
+        run: python -m unittest tests.test_v140_linguistic_pilot tests.test_v140_eval_harness -v
+      - name: Run full linguistic A/B baseline
+        run: |
+          python evals/run_ab_codex.py \
+            --evals-glob 'evals/linguistic_core_pilot_*.jsonl' \
+            --model gpt-5.6-sol \
+            --reasoning medium
+      - name: Score linguistic pilot
+        run: |
+          python evals/score_linguistic_pilot.py \
+            evals/results/ab_results.jsonl \
+            --out evals/results/linguistic_score.json
+          cat evals/results/linguistic_score.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: arab-writer-v140-linguistic-baseline
+          path: evals/results/
+          if-no-files-found: ignore
