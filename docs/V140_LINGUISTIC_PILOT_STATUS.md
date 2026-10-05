@@ -36,16 +36,26 @@ Added:
 - `tests/test_v140_linguistic_pilot.py`
 - `tests/test_v140_eval_harness.py`
 
-The tests validate schema, unique IDs, family allocation, case-type mix, no-change behavior, protected literals, guard cases, multi-file loading, and scorer behavior.
+The tests validate schema, unique IDs, family allocation, case-type mix, no-change behavior, protected literals, guard cases, multi-file loading, scorer behavior, and path-scoped global-skill isolation helpers.
 
 ### A/B harness
-`evals/run_ab_codex.py` now supports:
+`evals/run_ab_codex.py` supports:
 
 ```bash
 --evals-glob 'evals/linguistic_core_pilot_*.jsonl'
 ```
 
 This avoids maintaining a duplicated combined dataset.
+
+It also implements controlled skill isolation so a globally installed `arab-writer` does not contaminate the baseline:
+- auto-detect known user/global copies under `~/.agents/skills`, `~/.codex/skills`, and `$CODEX_HOME/skills` when present;
+- disable exact global `SKILL.md` paths via a session-level Codex `skills.config` override;
+- render `codex debug prompt-input` before any model call;
+- fail closed if baseline still sees `arab-writer`;
+- require the candidate workspace to see its repository-local copy;
+- record isolation evidence in `run_metadata.json` without persisting the rendered prompt.
+
+Nonstandard global/plugin paths can be supplied explicitly with repeatable `--global-skill-path` arguments.
 
 ### Linguistic scorer
 Added `evals/score_linguistic_pilot.py` reporting separately for baseline and candidate:
@@ -60,7 +70,7 @@ Added `evals/score_linguistic_pilot.py` reporting separately for baseline and ca
 A non-exact output is treated as an evaluation mismatch, not automatic proof of grammatical error.
 
 ### GitHub Actions
-The manual `codex-ab-benchmark` workflow now supports:
+The manual `codex-ab-benchmark` workflow supports:
 - `internal` suite;
 - `linguistic-pilot` suite.
 
@@ -75,6 +85,7 @@ Latest validation on this branch passed all structural steps, including:
 - skill/plugin validation;
 - Python compilation;
 - deterministic regression tests;
+- v1.4 isolation-helper tests;
 - benchmark-matrix validation;
 - structural release gate;
 - fidelity smoke test;
@@ -84,16 +95,43 @@ Latest validation on this branch passed all structural steps, including:
 
 The 64-case corpus and passing CI establish that the pilot dataset and evaluation harness are structurally valid. They do **not** establish that v1.4 improves Arabic writing or grammar performance.
 
-No baseline-vs-skill linguistic A/B result is recorded yet for this branch.
+No completed baseline-vs-skill linguistic A/B result is recorded yet for this branch.
+
+A one-time GitHub benchmark attempt was intentionally prevented before model execution because the repository did not have an `OPENAI_API_KEY` secret. No model benchmark evidence was produced by that failed credential preflight.
+
+## Recommended local baseline run
+
+On a computer where Codex CLI is already authenticated, first run only five cases:
+
+```bash
+python evals/run_ab_codex.py \
+  --evals-glob 'evals/linguistic_core_pilot_*.jsonl' \
+  --limit 5
+```
+
+The harness must report:
+
+```text
+Skill isolation: VERIFIED (baseline clean; candidate skill visible)
+```
+
+Then score the smoke run:
+
+```bash
+python evals/score_linguistic_pilot.py \
+  evals/results/ab_results.jsonl \
+  --out evals/results/linguistic_score.json
+```
+
+If the five-case smoke run is clean, repeat without `--limit` for all 64 cases.
 
 ## Next empirical gate
 
-Run the manual `codex-ab-benchmark` workflow with:
-- suite: `linguistic-pilot`;
-- limit: blank or `64`;
-- a pinned model and reasoning effort when possible.
+Capture a controlled baseline-vs-skill result using either:
+- the local authenticated Codex CLI with the isolation preflight; or
+- the manual `codex-ab-benchmark` workflow after adding the repository `OPENAI_API_KEY` secret.
 
-The run requires the repository `OPENAI_API_KEY` secret. After the artifact is produced, inspect:
+For formal comparison, pin model and reasoning effort when possible. After results are produced, inspect:
 1. correction-accuracy delta;
 2. correct-source-preservation delta;
 3. false-change delta;
