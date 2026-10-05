@@ -25,97 +25,99 @@ Current pilot: **64 cases** across four JSONL files.
 | AMB | 4 |
 | **Total** | **64** |
 
-The pilot intentionally mixes:
-- correction cases;
-- correct-source/no-change controls;
-- adversarial/context cases;
-- fidelity/protected-value cases.
+The pilot mixes correction cases, correct-source/no-change controls, adversarial/context cases, and fidelity/protected-value cases.
+
+### A/B harness hardening
+
+`evals/run_ab_codex.py` now includes four controls added after the first five-case local smoke exposed measurement weaknesses:
+
+1. **Sentinel-based skill isolation**
+   - known global/user Arab Writer copies are disabled by exact path for each Codex session;
+   - the temporary candidate copy receives a unique one-run sentinel in its description;
+   - `codex debug prompt-input` must show no Arab Writer in baseline and must show the sentinel in candidate;
+   - path visibility is diagnostic only because Codex prompt rendering may omit local paths;
+   - the repository skill itself is not modified.
+
+2. **Stratified smoke sampling**
+   - `--stratified-smoke` selects one deterministic case from each of ORT, MOR, SYN, AGR, NUM, PUN, and AMB;
+   - this replaces `--limit 5` as the recommended smoke method because the first five sorted cases were all MOR.
+
+3. **Controlled-run gate**
+   - `--controlled` requires pinned `--model` and `--reasoning`;
+   - requires a clean Git worktree;
+   - rejects a skipped skill-isolation preflight;
+   - records commit SHA, worktree-clean state, sampling mode, case IDs, Codex CLI version, and configured runtime values.
+
+4. **Strict versus substantive scoring**
+   - exact/minimality metrics remain strict;
+   - substantive linguistic metrics ignore optional Arabic harakat only;
+   - optional diacritics still count as a strict change on `PRESERVE` cases;
+   - protected literals remain a separate fidelity signal.
 
 ### Structural validation
-Added:
+
+Tests include:
 - `tests/test_v140_linguistic_pilot.py`
 - `tests/test_v140_eval_harness.py`
 
-The tests validate schema, unique IDs, family allocation, case-type mix, no-change behavior, protected literals, guard cases, multi-file loading, scorer behavior, and path-scoped global-skill isolation helpers.
+They cover schema, unique IDs, family allocation, case-type mix, protected literals, multi-file loading, scorer behavior, sentinel injection/visibility, Windows path escaping, controlled-run requirements, and stratified smoke selection.
 
-### A/B harness
-`evals/run_ab_codex.py` supports:
+### Linguistic scorer v2
 
-```bash
---evals-glob 'evals/linguistic_core_pilot_*.jsonl'
-```
-
-This avoids maintaining a duplicated combined dataset.
-
-It also implements controlled skill isolation so a globally installed `arab-writer` does not contaminate the baseline:
-- auto-detect known user/global copies under `~/.agents/skills`, `~/.codex/skills`, and `$CODEX_HOME/skills` when present;
-- disable exact global `SKILL.md` paths via a session-level Codex `skills.config` override;
-- render `codex debug prompt-input` before any model call;
-- fail closed if baseline still sees `arab-writer`;
-- require the candidate workspace to see its repository-local copy;
-- record isolation evidence in `run_metadata.json` without persisting the rendered prompt.
-
-Nonstandard global/plugin paths can be supplied explicitly with repeatable `--global-skill-path` arguments.
-
-### Linguistic scorer
-Added `evals/score_linguistic_pilot.py` reporting separately for baseline and candidate:
-- exact normalized gold rate;
-- correction accuracy;
-- correct-source preservation;
-- false-change rate;
+`evals/score_linguistic_pilot.py` reports:
+- exact gold rate;
+- substantive gold rate;
+- substantive correction accuracy;
+- exact correction accuracy;
+- strict source preservation;
+- substantive source preservation;
+- strict and substantive false-change rates;
+- optional-diacritic-only changes;
 - protected-literal retention;
 - family breakdown;
-- candidate-minus-baseline deltas.
+- candidate-minus-baseline deltas;
+- mismatch classification.
 
-A non-exact output is treated as an evaluation mismatch, not automatic proof of grammatical error.
+The score schema is `arab-writer-linguistic-pilot-score-v2`.
 
-### GitHub Actions
-The manual `codex-ab-benchmark` workflow supports:
-- `internal` suite;
-- `linguistic-pilot` suite.
+## First local smoke: evidence and limitation
 
-The linguistic suite is scored automatically after the A/B run and uploaded with the artifacts.
+A five-case run on 2026-10-05 successfully demonstrated that:
+- baseline did not expose the globally installed Arab Writer;
+- candidate exposed Arab Writer;
+- all ten model calls returned code 0.
 
-The ordinary validation workflow remains push-triggered and does **not** invoke paid model benchmarking.
+However, the run is **not** accepted as the formal baseline because:
+- model and reasoning were unpinned;
+- candidate local-path visibility was false, so name-only visibility did not prove provenance;
+- all five sampled cases were MOR;
+- exact scoring treated optional tanwin additions as correction failures;
+- the user's working tree contained unrelated prior fixture deletions.
 
-## CI state
+Those weaknesses are the reason for the hardening above. The five-case result remains diagnostic evidence only.
 
-Latest validation on this branch passed all structural steps, including:
-- readiness preflight;
-- skill/plugin validation;
-- Python compilation;
-- deterministic regression tests;
-- v1.4 isolation-helper tests;
-- benchmark-matrix validation;
-- structural release gate;
-- fidelity smoke test;
-- package build/verification.
+## Required next smoke
 
-## Evidence boundary
-
-The 64-case corpus and passing CI establish that the pilot dataset and evaluation harness are structurally valid. They do **not** establish that v1.4 improves Arabic writing or grammar performance.
-
-No completed baseline-vs-skill linguistic A/B result is recorded yet for this branch.
-
-A one-time GitHub benchmark attempt was intentionally prevented before model execution because the repository did not have an `OPENAI_API_KEY` secret. No model benchmark evidence was produced by that failed credential preflight.
-
-## Recommended local baseline run
-
-On a computer where Codex CLI is already authenticated, first run only five cases:
+Run from a clean checkout/worktree at a fixed commit:
 
 ```bash
 python evals/run_ab_codex.py \
   --evals-glob 'evals/linguistic_core_pilot_*.jsonl' \
-  --limit 5
+  --stratified-smoke \
+  --controlled \
+  --model <model-slug> \
+  --reasoning medium
 ```
 
-The harness must report:
+Required preconditions/evidence:
+- `Skill isolation: VERIFIED (baseline clean; candidate sentinel-tagged local skill visible)`
+- `git_worktree_clean: true`
+- configured model is pinned
+- configured reasoning is pinned
+- seven cases covering ORT/MOR/SYN/AGR/NUM/PUN/AMB
+- all model calls return 0
 
-```text
-Skill isolation: VERIFIED (baseline clean; candidate skill visible)
-```
-
-Then score the smoke run:
+Then score:
 
 ```bash
 python evals/score_linguistic_pilot.py \
@@ -123,24 +125,22 @@ python evals/score_linguistic_pilot.py \
   --out evals/results/linguistic_score.json
 ```
 
-If the five-case smoke run is clean, repeat without `--limit` for all 64 cases.
+If the stratified smoke is clean, run the full 64-case controlled baseline with the same model, reasoning, Codex CLI environment, and skill commit.
 
-## Next empirical gate
+## Evidence boundary
 
-Capture a controlled baseline-vs-skill result using either:
-- the local authenticated Codex CLI with the isolation preflight; or
-- the manual `codex-ab-benchmark` workflow after adding the repository `OPENAI_API_KEY` secret.
+Passing CI and a structurally valid 64-case corpus do **not** establish that v1.4 improves Arabic writing or grammar performance.
 
-For formal comparison, pin model and reasoning effort when possible. After results are produced, inspect:
-1. correction-accuracy delta;
-2. correct-source-preservation delta;
-3. false-change delta;
-4. protected-literal failures;
-5. family-level regressions;
-6. non-exact cases requiring blind human adjudication.
+No formal baseline-vs-skill linguistic result is accepted yet. The first five-case smoke is intentionally excluded from the formal baseline for the reasons above.
 
-Only after this baseline measurement should the new linguistic reference files be injected into the skill. This preserves a clean **before-v1.4-knowledge** baseline against which the linguistic layer can be measured.
+Only after a reproducible 64-case baseline is captured should new linguistic knowledge packs be injected into the skill. This preserves a valid before-v1.4-knowledge comparison.
 
 ## Decision gate after baseline
 
-Proceed to the first v1.4 knowledge implementation only if the baseline results are captured and reviewable. The first knowledge pack should target the highest-error families rather than blindly implementing the entire taxonomy at once.
+Proceed to the first v1.4 knowledge implementation only after:
+1. the controlled 64-case baseline is captured;
+2. family-level weaknesses are identified;
+3. strict over-editing and substantive correctness are reviewed separately;
+4. non-exact substantive mismatches are adjudicated where necessary.
+
+The first knowledge pack should target the highest-error families rather than implementing the entire taxonomy blindly.
