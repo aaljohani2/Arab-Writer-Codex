@@ -35,6 +35,17 @@ Scan the sentence for high-yield grammatical triggers before returning it unchan
 
 A proofreading pass should therefore be **diagnostic before conservative**: first test these relations, then preserve what survives the test.
 
+### Mandatory visible-form checks before `no change`
+
+Before returning a sentence unchanged, explicitly test any suspicious **written** agreement or case-bearing form when one of these patterns is present:
+
+1. a non-human plural with a directly attached adjective or predicate;
+2. a passive verb that is normally ditransitive, followed by two nominal/complement slots;
+3. a dual or sound masculine plural whose `ان/ين` or `ون/ين` ending encodes case;
+4. a relative pronoun whose antecedent is visibly human/non-human or singular/plural.
+
+This is a short decision check, not a license to rewrite. If the relation is deterministic and the written form is wrong, correct only that span.
+
 ## 1. Nominal clauses and fronting
 
 A nominal clause may appear in the ordinary order `مبتدأ + خبر`, or with a fronted predicate, especially when the predicate is a prepositional phrase or adverbial phrase.
@@ -121,12 +132,30 @@ In the passive, the element promoted to نائب الفاعل is nominative.
 
 With verbs that take two objects, the first object normally becomes deputy subject and the second remains in its object role.
 
-Fresh example:
+Fresh examples:
 
 - Active: `منح المديرُ الباحثينَ صلاحيةً إضافيةً.`
 - Passive: `مُنح الباحثون صلاحيةً إضافيةً.`
 
 Do not preserve an accusative first object after a clearly passive ditransitive verb when that object is functioning as deputy subject.
+
+### Passive-ditransitive decision procedure
+
+When proofreading a passive form of a verb such as `أعطى`, `منح`, `كسا`, `ألبس`, `أخبر`, or another verb known to take two objects:
+
+1. confirm from the written form and context that the verb is passive;
+2. reconstruct the active valency mentally: who/what would be the first object, and what would be the second object/complement?;
+3. test whether the first post-verbal nominal is the promoted first object;
+4. if so, treat it as نائب الفاعل and require nominative form;
+5. leave the second object/complement in its own governed role;
+6. prefer evidence visible in the letters, especially dual and sound-plural endings.
+
+Fresh contrasts:
+
+- `أعطت اللجنةُ الفائزينَ جوائزَ.` → `أُعطي الفائزون جوائزَ.`
+- `منح المجلسُ المهندسَ صلاحيةً.` → `مُنح المهندسُ صلاحيةً.`
+
+A fluent surface sequence is not enough reason to keep an accusative sound-plural form after a passive ditransitive verb.
 
 ## 7. Human and non-human plural agreement
 
@@ -148,7 +177,25 @@ Examples:
 - `القرارات التي صدرت أمس نافذة.`
 - `البيانات متسقة مع التعريف.`
 
+If a non-human plural directly governs or is described by a predicate/adjective, **feminine singular is the standard agreement target**. Masculine singular and human-plural agreement are both suspect unless a different syntactic analysis is actually present.
+
+Fresh contrast:
+
+- wrong direct agreement: `التقارير متباين في نتائجها.`
+- standard correction: `التقارير متباينة في نتائجها.`
+
 Do not replace a required feminine-singular agreement pattern with masculine singular or human plural agreement.
+
+### Local attachment: do not spread agreement across the sentence
+
+First decide whether the word actually agrees with the non-human plural. Do not force every later adjective or participle in the sentence into feminine singular merely because a non-human plural occurred earlier.
+
+Compare:
+
+- `هذه التقارير متباينة في منهجها.` — `متباينة` is a direct predicate and agrees with `التقارير`.
+- `هذه التقارير متباينة في منهجها، معروفٌ سببُ التفاوت.` — `معروفٌ` belongs to a separate predicative relation with `سببُ`; it is not another adjective/predicate of `التقارير`.
+
+Use **syntactic attachment, not nearest-noun attraction**. Repair only the span whose agreement relation is established.
 
 ### Heritage and semantic agreement
 
@@ -265,6 +312,17 @@ If two grammatical readings remain genuinely plausible after checking the whole 
 1. do not guess;
 2. preserve the source in a pure proofreading task, unless the user asked to flag uncertainty;
 3. if diagnostic output is requested, identify the competing analyses rather than presenting one as certain.
+
+## Final syntax gate before returning
+
+For correctness-heavy proofreading, ask these four questions before final output:
+
+1. Did I leave any **visible** case/agreement defect after a governor I can identify?
+2. If I changed agreement, did I prove the target actually attaches to that noun rather than to a separate clause or phrase?
+3. If the verb is passive and ditransitive, did I identify the promoted first object/deputy subject correctly?
+4. Did I preserve every recognized classical/modern licensed form that survived those checks?
+
+If the answer to 1 is yes, fix the deterministic defect. If 2 or 3 is uncertain, re-parse before changing. If genuine ambiguity remains, preserve rather than guess.
 
 ## Reference anchors
 
