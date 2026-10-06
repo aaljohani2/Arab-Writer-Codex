@@ -23,6 +23,11 @@ Before deciding that the text is already correct, run a short discovery scan for
 - followers such as adjective/apposition where case agreement is visible;
 - jussive/subjunctive environments whose effects are visible in the written form.
 
+Before returning **no change** in blind proofreading, perform two mandatory role checks when applicable:
+
+1. **Non-human plural attachment check** — if a predicate/adjective directly describes a non-human plural, verify feminine-singular agreement; do not replace it with masculine singular or human-plural agreement. At the same time, do not spread that agreement to a later word that belongs to a separate clause or predicative relation.
+2. **Passive ditransitive check** — if a passive verb normally takes two objects, identify whether the first post-verbal nominal is the promoted first object/نائب الفاعل. If so, require nominative form, especially when dual or sound-plural endings make the case visible.
+
 Correct only defects that are sufficiently supported by context. Preserve correct source forms.
 
 **Minimality must not become passivity:** once a deterministic grammatical defect is established, correct the smallest span that repairs it even if the sentence is still understandable.
@@ -38,6 +43,8 @@ Review each changed span and then scan the full candidate for:
 - negation and particles that alter grammatical government;
 - pronoun antecedents and ambiguity;
 - punctuation and sentence boundaries.
+
+For every changed agreement span, ask: **what exactly does this word attach to?** Revert any agreement change that was driven only by proximity to a nearby noun rather than a proven syntactic relation.
 
 ## Visible morphology rule
 
