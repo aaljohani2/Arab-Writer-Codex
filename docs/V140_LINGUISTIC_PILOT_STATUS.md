@@ -1,146 +1,184 @@
 # v1.4 Arabic Linguistic Core — Pilot Status
 
-Status date: 2026-10-05  
+Status date: 2026-10-06  
 Branch: `feature/v1.4-arabic-linguistic-core`
 
-## Implemented
+## Current phase
 
-### Engineering specification
-- `docs/ARABIC_ERROR_TAXONOMY_V1.md`
-- Families: ORT, MOR, SYN, AGR, NUM, PUN, AMB, STY.
-- Explicit separation among defects, contextual defects, editorial opportunities, and ambiguous cases.
-- Confidence, severity, and default-action dimensions defined.
+The project has moved past corpus construction and baseline capture into **Phase 1 linguistic knowledge refinement**.
 
-### Initial authored pilot
-Current pilot: **64 cases** across four JSONL files.
+The current runtime skill is still labeled `v1.3.0`; the feature branch contains experimental v1.4 knowledge only. Do not merge or release it as v1.4 until the blind regression gates pass.
+
+## Measurement assets
+
+### Initial linguistic pilot
+
+64 cases across ORT/MOR/SYN/AGR/NUM/PUN/AMB. This suite established the scorer, A/B harness, skill isolation, strict-vs-substantive metrics, and the first reproducible before-v1.4 baseline.
+
+### Challenge Set v1
+
+70 source-grounded hard cases:
 
 | Family | Cases |
 |---|---:|
 | SYN | 20 |
-| ORT | 10 |
-| MOR | 10 |
-| AGR | 8 |
-| NUM | 8 |
-| PUN | 4 |
-| AMB | 4 |
-| **Total** | **64** |
+| MOR | 15 |
+| NUM | 10 |
+| AMB | 10 |
+| AGR | 5 |
+| ORT | 5 |
+| PUN | 5 |
+| **Total** | **70** |
 
-The pilot mixes correction cases, correct-source/no-change controls, adversarial/context cases, and fidelity/protected-value cases.
+The set is balanced at 35 classical/heritage and 35 modern/contemporary cases. The second-pass linguistic review is documented in `docs/CHALLENGE_SET_V1_LINGUISTIC_REVIEW.md`.
 
-### A/B harness hardening
+## Controlled A/B safeguards
 
-`evals/run_ab_codex.py` now includes four controls added after the first five-case local smoke exposed measurement weaknesses:
+`evals/run_ab_codex.py` now provides:
 
-1. **Sentinel-based skill isolation**
-   - known global/user Arab Writer copies are disabled by exact path for each Codex session;
-   - the temporary candidate copy receives a unique one-run sentinel in its description;
-   - `codex debug prompt-input` must show no Arab Writer in baseline and must show the sentinel in candidate;
-   - path visibility is diagnostic only because Codex prompt rendering may omit local paths;
-   - the repository skill itself is not modified.
+- exact-path disabling of global/user Arab Writer installations;
+- temporary candidate sentinel injection;
+- `codex debug prompt-input` skill-isolation preflight;
+- `--controlled` clean-worktree and pinned-runtime gate;
+- deterministic stratified smoke selection;
+- `--blind-proofread`, which hides per-case task/rule/family/rationale/gold hints and sends one generic proofreading instruction plus the source text only;
+- run metadata containing commit, prompt mode, configured model/reasoning, case IDs, Codex CLI version, and isolation evidence.
 
-2. **Stratified smoke sampling**
-   - `--stratified-smoke` selects one deterministic case from each of ORT, MOR, SYN, AGR, NUM, PUN, and AMB;
-   - this replaces `--limit 5` as the recommended smoke method because the first five sorted cases were all MOR.
+The scorer separates exact minimality from substantive matching that ignores optional Arabic harakat only.
 
-3. **Controlled-run gate**
-   - `--controlled` requires pinned `--model` and `--reasoning`;
-   - requires a clean Git worktree;
-   - rejects a skipped skill-isolation preflight;
-   - records commit SHA, worktree-clean state, sampling mode, case IDs, Codex CLI version, and configured runtime values.
+## Blind Challenge baseline before v1.4 knowledge
 
-4. **Strict versus substantive scoring**
-   - exact/minimality metrics remain strict;
-   - substantive linguistic metrics ignore optional Arabic harakat only;
-   - optional diacritics still count as a strict change on `PRESERVE` cases;
-   - protected literals remain a separate fidelity signal.
+Controlled run:
 
-### Structural validation
+- commit: `96519ed8fe29f76916a589a76037bcb6455c0110`
+- skill version: `1.3.0`
+- prompt mode: `blind-proofread-v1`
+- configured model: `gpt-6.1-sol`
+- reasoning: `medium`
+- Codex CLI: `0.160.0`
+- cases: 70
+- model calls: 140
+- worktree clean: yes
+- skill isolation: verified
+- protected failures: 0
+- nonzero model return codes: 0
 
-Tests include:
-- `tests/test_v140_linguistic_pilot.py`
-- `tests/test_v140_eval_harness.py`
+### Blind result
 
-They cover schema, unique IDs, family allocation, case-type mix, protected literals, multi-file loading, scorer behavior, sentinel injection/visibility, Windows path escaping, controlled-run requirements, and stratified smoke selection.
+| Metric | Baseline | Arab Writer v1.3 |
+|---|---:|---:|
+| Exact gold | 84.29% | 81.43% |
+| Substantive gold | 94.29% | 90.00% |
+| Correction accuracy | 92.86% | 87.50% |
+| Exact source preservation | 92.86% | 100.00% |
+| Substantive source preservation | 100.00% | 100.00% |
+| Strict false-change rate | 7.14% | 0.00% |
+| Protected retention | 100.00% | 100.00% |
 
-### Linguistic scorer v2
+Interpretation: v1.3 was **more conservative and better at preservation**, but that conservatism reduced blind discovery/correction of deterministic syntax/agreement defects.
 
-`evals/score_linguistic_pilot.py` reports:
-- exact gold rate;
-- substantive gold rate;
-- substantive correction accuracy;
-- exact correction accuracy;
-- strict source preservation;
-- substantive source preservation;
-- strict and substantive false-change rates;
-- optional-diacritic-only changes;
-- protected-literal retention;
-- family breakdown;
-- candidate-minus-baseline deltas;
-- mismatch classification.
+Family signal before Phase 1:
 
-The score schema is `arab-writer-linguistic-pilot-score-v2`.
+- MOR: 100% substantive candidate
+- NUM: 100%
+- ORT: 100%
+- AMB: 100%
+- AGR: 80%
+- SYN: 85%
+- PUN: 40% exact/substantive under the deterministic gold scorer; punctuation remains human-adjudication sensitive.
 
-## First local smoke: evidence and limitation
+Therefore Phase 1 targets **syntax + agreement discovery**, not morphology, numbers, or orthography.
 
-A five-case run on 2026-10-05 successfully demonstrated that:
-- baseline did not expose the globally installed Arab Writer;
-- candidate exposed Arab Writer;
-- all ten model calls returned code 0.
+## Phase 1 implementation
 
-However, the run is **not** accepted as the formal baseline because:
-- model and reasoning were unpinned;
-- candidate local-path visibility was false, so name-only visibility did not prove provenance;
-- all five sampled cases were MOR;
-- exact scoring treated optional tanwin additions as correction failures;
-- the user's working tree contained unrelated prior fixture deletions.
+Added runtime reference:
 
-Those weaknesses are the reason for the hardening above. The five-case result remains diagnostic evidence only.
+- `.agents/skills/arab-writer/references/arabic-syntax.md`
 
-## Required next smoke
+It is wired through `SKILL.md` and `arabic-linguistic-verification.md` for correctness-heavy/proofread tasks.
 
-Run from a clean checkout/worktree at a fixed commit:
+The knowledge is rule-based and uses fresh examples. Evaluation case IDs, target sentences, gold answers, and case-specific rationales are forbidden from runtime references.
 
-```bash
-python evals/run_ab_codex.py \
-  --evals-glob 'evals/linguistic_core_pilot_*.jsonl' \
-  --stratified-smoke \
-  --controlled \
-  --model <model-slug> \
-  --reasoning medium
-```
+Primary rule anchors include:
 
-Required preconditions/evidence:
-- `Skill isolation: VERIFIED (baseline clean; candidate sentinel-tagged local skill visible)`
-- `git_worktree_clean: true`
-- configured model is pinned
-- configured reasoning is pinned
-- seven cases covering ORT/MOR/SYN/AGR/NUM/PUN/AMB
-- all model calls return 0
+- سيبويه — `الكتاب`
+- ابن هشام — `مغني اللبيب`
+- ابن عقيل — `شرح ابن عقيل`
+- مصطفى الغلاييني — `جامع الدروس العربية`
+- عباس حسن — `النحو الوافي`
 
-Then score:
+## Phase 1 targeted blind smoke
 
-```bash
-python evals/score_linguistic_pilot.py \
-  evals/results/ab_results.jsonl \
-  --out evals/results/linguistic_score.json
-```
+Controlled ten-case smoke at commit:
 
-If the stratified smoke is clean, run the full 64-case controlled baseline with the same model, reasoning, Codex CLI environment, and skill commit.
+`c5e7190da4645b05a141127605f2c1033362df79`
+
+The sample contained five target correction cases and five preservation/heritage controls.
+
+### Result
+
+| Metric | Baseline | Candidate |
+|---|---:|---:|
+| Substantive gold | 90% | 80% |
+| Correction accuracy | 80% | 60% |
+| Exact source preservation | 80% | 100% |
+| Substantive source preservation | 100% | 100% |
+| Strict false-change rate | 20% | 0% |
+
+The smoke shows a **partial success, not a pass**.
+
+Three previously weak syntax targets were corrected by the candidate in this smoke:
+
+- `CH-SYN-003`
+- `CH-SYN-011`
+- `CH-SYN-012`
+
+All five preservation controls remained substantively correct, and the candidate made no preservation edits.
+
+Two target failures remain:
+
+- `CH-AGR-001` — the candidate changed the defective human-plural form to masculine singular instead of the required feminine-singular agreement for the directly predicated non-human plural; the later impersonal/predicative material must not attract agreement from the earlier noun.
+- `CH-SYN-018` — the candidate still failed to promote the first object of a passive ditransitive verb to nominative نائب الفاعل.
+
+No protected failures or nonzero model return codes occurred.
+
+## Phase 1b refinement
+
+The syntax core now adds two explicit role-based decision procedures, using fresh examples rather than benchmark text:
+
+1. **Non-human plural local attachment**
+   - direct adjective/predicate agreement → feminine singular in standard Arabic;
+   - do not spread agreement into a separate clause/predicative relation;
+   - use syntactic attachment, not nearest-noun attraction.
+
+2. **Passive ditransitive promotion**
+   - reconstruct active valency;
+   - identify the promoted first object;
+   - require nominative نائب الفاعل;
+   - preserve the second object's/complement's own role;
+   - prioritize visible dual/sound-plural endings as high-confidence evidence.
+
+The verification layer and SKILL routing repeat these checks so that minimality cannot become passive under-correction.
+
+## Next gate
+
+Do **not** run the full 70-case blind suite yet.
+
+First rerun the same 10-case targeted blind smoke from a clean worktree at the current Phase 1b commit, with the same configured model/reasoning and Codex CLI environment.
+
+Pass criteria:
+
+1. candidate corrects all five target correction cases substantively;
+2. candidate preserves all five control cases substantively;
+3. no protected failure;
+4. no nonzero model return code;
+5. skill isolation verified;
+6. no benchmark sentence/ID is present in runtime knowledge.
+
+If Phase 1b passes, run the full 70-case blind A/B. Only then decide whether syntax/agreement is ready and whether a second knowledge family should be added.
 
 ## Evidence boundary
 
-Passing CI and a structurally valid 64-case corpus do **not** establish that v1.4 improves Arabic writing or grammar performance.
+CI proves structure and deterministic tests, not model-quality improvement. The blind model run remains the quality gate.
 
-No formal baseline-vs-skill linguistic result is accepted yet. The first five-case smoke is intentionally excluded from the formal baseline for the reasons above.
-
-Only after a reproducible 64-case baseline is captured should new linguistic knowledge packs be injected into the skill. This preserves a valid before-v1.4-knowledge comparison.
-
-## Decision gate after baseline
-
-Proceed to the first v1.4 knowledge implementation only after:
-1. the controlled 64-case baseline is captured;
-2. family-level weaknesses are identified;
-3. strict over-editing and substantive correctness are reviewed separately;
-4. non-exact substantive mismatches are adjudicated where necessary.
-
-The first knowledge pack should target the highest-error families rather than implementing the entire taxonomy blindly.
+A configured model slug is recorded as configured runtime only; observed runtime remains unknown unless independent runtime evidence is captured.
