@@ -21,7 +21,7 @@ Meaning and evidence outrank elegance.
 ## Modes
 
 Primary:
-- `proofread` — definite language/mechanical correction; minimal rewriting.
+- `proofread` — discover and correct definite language/mechanical defects with the smallest valid edit; do not rewrite correct wording.
 - `rewrite` — improve wording, clarity, and flow.
 - `naturalize` — reduce stiffness, generic framing, repetition, and mechanical structure.
 - `voice-lock` — improve defects while keeping recognizable style within an acceptable drift band.
@@ -62,6 +62,13 @@ Correctness-heavy, especially `proofread`:
 - `references/arabic-syntax.md`
 
 For proofreading, perform a short grammatical discovery pass before deciding that the source needs no correction. Minimality means **small edits**, not missed deterministic errors. Use `arabic-syntax.md` to test governed relations and agreement before preserving a suspicious form.
+
+In blind proofreading, do not return a suspicious sentence unchanged before checking visible case/agreement relations. Give special attention to:
+- direct adjective/predicate agreement with non-human plurals;
+- passive verbs that take two objects, where the promoted first object becomes نائب الفاعل;
+- dual and sound-plural endings whose case is visible in the letters.
+
+When changing agreement, prove the target's syntactic attachment first. Do not propagate agreement to a separate clause or phrase merely because it follows the same noun.
 
 By task:
 - naturalize → `references/naturalness.md`
