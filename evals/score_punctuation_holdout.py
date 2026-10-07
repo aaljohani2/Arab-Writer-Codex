@@ -15,17 +15,30 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
+import unicodedata
 from collections import Counter
 from pathlib import Path
 
-from score_linguistic_pilot import normalize, normalize_substantive
-
-ARMS = ("baseline", "candidate")
+OPTIONAL_DIACRITICS_RE = re.compile(r"[\u064B-\u0652\u0670]")
 PUN_CLASSES = {
     "PUN-D1-DETERMINISTIC",
     "PUN-S2-STRUCTURAL",
     "PUN-J3-EDITORIAL",
 }
+
+
+def normalize(text: str) -> str:
+    text = unicodedata.normalize("NFC", text or "").strip()
+    if text.startswith("```") and text.endswith("```"):
+        lines = text.splitlines()
+        if len(lines) >= 3:
+            text = "\n".join(lines[1:-1]).strip()
+    return re.sub(r"\s+", " ", text)
+
+
+def normalize_substantive(text: str) -> str:
+    return OPTIONAL_DIACRITICS_RE.sub("", normalize(text))
 
 
 def load_results(path: Path) -> list[dict]:
