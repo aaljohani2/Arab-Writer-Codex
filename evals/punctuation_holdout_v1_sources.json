@@ -1,0 +1,38 @@
+{
+  "schema": "arab-writer-punctuation-holdout-sources-v1",
+  "status": "draft",
+  "created_on": "2026-10-07",
+  "context_source_registry": "evals/challenge/source_registry.json",
+  "principles": {
+    "source_grounded": true,
+    "adapted_not_verbatim_by_default": true,
+    "heritage_modern_balance": "9 heritage / 9 modern",
+    "runtime_separation": "Holdout cases and gold/acceptable outputs are evaluation artifacts and must not be copied into runtime references."
+  },
+  "rule_sources": [
+    {
+      "id": "PUN-RULE-AHMAD-ZAKI-1912",
+      "author": "أحمد زكي باشا",
+      "work": "الترقيم وعلاماته في اللغة العربية",
+      "year": 1912,
+      "url": "https://downloads.hindawi.org/books/82047270.pdf",
+      "role": "historical-systematic-punctuation-reference"
+    },
+    {
+      "id": "PUN-RULE-KSU-BASICS",
+      "author": "كلية العلوم الإنسانية والاجتماعية - جامعة الملك سعود",
+      "work": "أساسيات الكتابة العربية",
+      "year": null,
+      "url": "https://chss.ksu.edu.sa/ar/node/4985",
+      "role": "modern-writing-guidance"
+    },
+    {
+      "id": "PUN-RULE-KSAA-WRITING-SYSTEM",
+      "author": "مجمع الملك سلمان العالمي للغة العربية",
+      "work": "الخلف في نظام الكتابة العربية رسماً ولفظاً - مبحث علامات الترقيم",
+      "year": null,
+      "url": "https://library.ksaa.gov.sa/links/epubs/alkhilaf_fi_nizam_alkitabat_alearabia.pdf",
+      "role": "modern-writing-system-variation-reference"
+    }
+  ]
+}
