@@ -60,6 +60,7 @@ Always:
 Correctness-heavy, especially `proofread`:
 - `references/arabic-linguistic-verification.md`
 - `references/arabic-syntax.md`
+- `references/arabic-punctuation.md`
 
 For proofreading, perform a short grammatical discovery pass before deciding that the source needs no correction. Minimality means **small edits**, not missed deterministic errors. Use `arabic-syntax.md` to test governed relations and agreement before preserving a suspicious form.
 
@@ -69,6 +70,8 @@ In blind proofreading, do not return a suspicious sentence unchanged before chec
 - dual and sound-plural endings whose case is visible in the letters.
 
 When changing agreement, prove the target's syntactic attachment first. Do not propagate agreement to a separate clause or phrase merely because it follows the same noun.
+
+For punctuation in proofreading, classify the issue before editing: deterministic/mechanical (D1), structural/contextual (S2), or editorial/judgment (J3). Fix D1, repair S2 only when a real boundary is missing or misleading, and preserve J3 unless the user supplied a house style. Use `arabic-punctuation.md` for this decision.
 
 By task:
 - naturalize → `references/naturalness.md`
