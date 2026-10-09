@@ -217,16 +217,85 @@ Therefore do **not** tune runtime knowledge to the existing five PUN gold string
 
 The punctuation plan is documented separately in `docs/V140_PUNCTUATION_ADJUDICATION_V1.md`.
 
+## Punctuation pre-knowledge holdout
+
+A fresh 18-case punctuation holdout was measured before wiring punctuation-specific runtime knowledge.
+
+Controlled run:
+
+- commit: `85b9b60058001e596917c1dd585dbaebe0a699ac`
+- prompt mode: `blind-proofread-v1`
+- configured model: `gpt-6.1-sol`
+- configured reasoning: `medium`
+- Codex CLI: `0.162.0-alpha.2`
+- 18 cases / 36 model calls
+- 6 D1 deterministic + 6 S2 structural + 6 J3 editorial
+- 9 heritage + 9 modern
+- clean worktree and verified skill isolation
+- protected failures: 0
+- nonzero model return codes: 0
+
+### Pre-knowledge punctuation result
+
+| Metric | Baseline | Candidate |
+|---|---:|---:|
+| Accepted exact | 77.78% | **83.33%** |
+| Accepted substantive | 77.78% | **83.33%** |
+| Accepted cases | 14/18 | **15/18** |
+| Deterministic failures | 1 | **0** |
+| Needs human review | 3 | 3 |
+| Source preserved | 9 | 9 |
+| Protected retention | 100% | 100% |
+
+The three unresolved cases were all **S2 structural** cases. Both arms left the same structural punctuation unchanged. The J3/editorial controls did not regress, and the candidate already passed all D1 deterministic cases.
+
+Therefore Phase 2 must not teach blanket punctuation normalization. It should target **structural relation discovery** while explicitly preserving valid editorial variants.
+
+## Phase 2 implementation — punctuation decision core
+
+Added runtime reference:
+
+- `.agents/skills/arab-writer/references/arabic-punctuation.md`
+
+It is wired through `SKILL.md` and `arabic-linguistic-verification.md`.
+
+The runtime model now separates:
+
+1. **D1 deterministic/mechanical** — direct-question terminal marks, paired delimiters, accidental duplicate marks, and explicit house-style shape/spacing defects;
+2. **S2 structural/contextual** — announced enumeration, explanation after a summary expression, definition, and staged division;
+3. **J3 editorial/judgment** — defensible pause-strength choices such as comma vs semicolon and colon vs dash.
+
+The core uses fresh examples and must not contain holdout IDs, source sentences, gold answers, acceptable-output lists, or case-specific rationales.
+
+Reference anchors include:
+
+- أحمد زكي باشا — `الترقيم وعلاماته في اللغة العربية` (1912);
+- جامعة الملك سعود — `أساسيات الكتابة العربية`;
+- مجمع الملك سلمان العالمي للغة العربية — work on punctuation and variation in the Arabic writing system.
+
 ## Next gate
 
-Phase 1 syntax/agreement is frozen for now. Do not continue benchmark-specific syntax tuning from the existing 70 cases.
+Phase 1 syntax/agreement remains frozen.
 
-Next workstream:
+Before running the full punctuation holdout again, run a targeted blind smoke that contains:
 
-1. build the punctuation adjudication protocol;
-2. author a fresh punctuation holdout with deterministic vs stylistic labels;
-3. only then decide whether `references/arabic-punctuation.md` should be wired into runtime;
-4. keep MOR/NUM/ORT/AMB untouched while they remain at 100% substantive on the challenge set.
+- the three previously unresolved S2 structural cases;
+- three already-passing S2 controls;
+- three J3 preservation controls spanning heritage and modern prose;
+- one D1 mechanical control.
+
+Pass criteria:
+
+1. all six S2 cases are accepted by the punctuation scorer;
+2. all three J3 controls remain accepted without a new substantive rewrite;
+3. the D1 control remains accepted;
+4. no protected failure;
+5. no nonzero model return code;
+6. skill isolation verified.
+
+If the targeted smoke passes, rerun all 18 holdout cases under the same runtime configuration. Do not tune to exact punctuation strings when the scorer classifies a case as adjudication-sensitive.
+
+Keep MOR/NUM/ORT/AMB untouched while they remain at 100% substantive on Challenge Set v1.
 
 ## Evidence boundary
 
