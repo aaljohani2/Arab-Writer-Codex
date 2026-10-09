@@ -1,6 +1,6 @@
 # v1.4 Arabic Linguistic Core — Pilot Status
 
-Status date: 2026-10-07  
+Status date: 2026-10-09  
 Branch: `feature/v1.4-arabic-linguistic-core`
 
 ## Current phase
