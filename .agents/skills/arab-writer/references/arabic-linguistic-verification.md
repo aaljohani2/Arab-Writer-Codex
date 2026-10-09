@@ -2,7 +2,7 @@
 
 Use this for proofreading and any task where Arabic correctness is a primary requirement. It complements, rather than replaces, `arabic-core.md`.
 
-For syntax/agreement discovery and adjudication, also load `arabic-syntax.md`.
+For syntax/agreement discovery and adjudication, also load `arabic-syntax.md`. For punctuation discovery and adjudication, also load `arabic-punctuation.md`.
 
 ## Two-pass rule
 
@@ -43,6 +43,13 @@ Review each changed span and then scan the full candidate for:
 - negation and particles that alter grammatical government;
 - pronoun antecedents and ambiguity;
 - punctuation and sentence boundaries.
+
+For punctuation, classify a proposed edit before applying it:
+- **D1 mechanical** — unmatched paired marks, wrong terminal mark on a direct question, accidental duplicated punctuation, or explicit house-style shape/spacing defects;
+- **S2 structural** — a missing or misleading boundary before an announced enumeration, explanation, definition, or staged division;
+- **J3 editorial** — a defensible choice of pause strength such as comma versus semicolon or colon versus dash.
+
+Fix D1. Fix S2 only when the structure is genuinely obscured or mis-signalled. Preserve J3 in proofreading unless an explicit house style resolves the choice.
 
 For every changed agreement span, ask: **what exactly does this word attach to?** Revert any agreement change that was driven only by proximity to a nearby noun rather than a proven syntactic relation.
 
